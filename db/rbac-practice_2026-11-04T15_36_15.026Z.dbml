@@ -1,0 +1,94 @@
+Table user [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	tenant_id integer [ not null ]
+	role_id integer [ not null ]
+	name varchar(255) [ not null ]
+	email varchar(255) [ not null ]
+	password_hash text(65535)
+
+	indexes {
+		(tenant_id, email) [ unique, name: "idx_user_tenant_email" ]
+	}
+}
+
+Table shopping_list_item [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	shopping_list_id integer [ not null ]
+	name varchar(255) [ not null ]
+	amount_to_buy integer [ not null ]
+	created_by integer [ not null ]
+	ticked boolean [ not null, default: false ]
+
+	indexes {
+		(shopping_list_id, name) [ unique, name: "idx_item_list_name" ]
+	}
+}
+
+Table shopping_list [headercolor: #777a17] {
+	id integer [ pk, increment, not null ]
+	tenant_id integer [ not null ]
+	name varchar(255) [ not null ]
+	created_by integer [ not null ]
+}
+
+Table tenant [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	name varchar(255) [ not null ]
+}
+
+Table role [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	name varchar(255) [ not null, unique ]
+	created_by integer [ note: 'if empty/null then its a system role, else custom role created by a user' ]
+
+	Note: 'Seeded with roles: e.g. admin, member, viewer'
+}
+
+Table permission [headercolor: #175e7a] {
+	id integer [ pk, increment, not null ]
+	code varchar(255) [ not null, unique, note: 'e.g. lists:read, lists:create, lists:delete, items:create, items:check, roles:manage' ]
+	description varchar(255)
+
+	Note: 'Seeded with all available permissions in the app'
+}
+
+Table role_permission [headercolor: #175e7a] {
+	role_id integer [ pk, not null ]
+	permission_id integer [ pk, not null ]
+}
+
+Ref fk_role_created_by_user {
+	role.created_by > user.id [ delete: set null, update: no action ]
+}
+
+Ref fk_user_tenant {
+	user.tenant_id > tenant.id [ delete: cascade, update: no action ]
+}
+
+Ref fk_shopping_list_created_by_user {
+	shopping_list.created_by > user.id [ delete: cascade, update: no action ]
+}
+
+Ref fk_shopping_list_item_shopping_list {
+	shopping_list_item.shopping_list_id > shopping_list.id [ delete: cascade, update: no action ]
+}
+
+Ref fk_shopping_list_item_created_by_user {
+	shopping_list_item.created_by > user.id [ delete: cascade, update: no action ]
+}
+
+Ref fk_user_role {
+	user.role_id > role.id [ delete: no action, update: no action ]
+}
+
+Ref fk_role_permission_role {
+	role_permission.role_id > role.id [ delete: cascade, update: no action ]
+}
+
+Ref fk_role_permission_permission {
+	role_permission.permission_id > permission.id [ delete: cascade, update: no action ]
+}
+
+Ref fk_shopping_list_tenant {
+	shopping_list.tenant_id > tenant.id [ delete: cascade, update: no action ]
+}
