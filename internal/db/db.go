@@ -3,24 +3,22 @@ package db
 import (
 	"database/sql"
 	_ "embed"
+
+	db_internal "rbac-testing/db"
+
+	_ "modernc.org/sqlite" // <--- registers "sqlite"
 )
-
-//go:embed ../../db/rbac-practice.sql
-var schemaSQL string
-
-//go:embed ../../db/seed.sql
-var seedSQL string
 
 func InitDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := db.Exec(schemaSQL); err != nil {
+	if _, err := db.Exec(db_internal.SchemaSQL); err != nil {
 		db.Close()
 		return nil, err
 	}
-	if _, err := db.Exec(seedSQL); err != nil {
+	if _, err := db.Exec(db_internal.SeedSQL); err != nil {
 		db.Close()
 		return nil, err
 	}

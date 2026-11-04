@@ -1,0 +1,10 @@
+version: '2'
+sql:
+  - engine: "sqlite"
+    queries: "db/queries.sql"
+    schema: "db/rbac-practice.sql"
+    gen:
+      go:
+        package: "store"
+        out: "internal/store"
+
