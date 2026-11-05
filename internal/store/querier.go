@@ -11,11 +11,14 @@ import (
 type Querier interface {
 	CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error)
 	CreateShoppingList(ctx context.Context, arg CreateShoppingListParams) (ShoppingList, error)
+	CreateSupermarket(ctx context.Context, arg CreateSupermarketParams) (Supermarket, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	DeleteItem(ctx context.Context, id int64) error
 	DeleteShoppingList(ctx context.Context, arg DeleteShoppingListParams) error
+	DeleteSupermarket(ctx context.Context, id int64) error
 	GetRoleByID(ctx context.Context, id int64) (Role, error)
 	GetShoppingListByID(ctx context.Context, arg GetShoppingListByIDParams) (ShoppingList, error)
+	GetSupermarketByID(ctx context.Context, id int64) (Supermarket, error)
 	// ========================================================
 	// 1. AUTH & RBAC (The Most Important Query for Permissions)
 	// ========================================================
@@ -31,7 +34,12 @@ type Querier interface {
 	// 2. SHOPPING LISTS
 	// ========================================================
 	ListShoppingListsByTenant(ctx context.Context, tenantID int64) ([]ShoppingList, error)
+	// ========================================================
+	// 4. SUPERMARKETS
+	// ========================================================
+	ListSupermarkets(ctx context.Context) ([]Supermarket, error)
 	ToggleItem(ctx context.Context, arg ToggleItemParams) error
+	UpdateSupermarket(ctx context.Context, arg UpdateSupermarketParams) (Supermarket, error)
 }
 
 var _ Querier = (*Queries)(nil)

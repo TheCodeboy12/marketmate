@@ -11,17 +11,16 @@ import (
 )
 
 const createItem = `-- name: CreateItem :one
-INSERT INTO
-    shopping_list_item(
-        shopping_list_id,
-        name,
-        amount_to_buy,
-        created_by,
-        ticked,
-        category
-    )
-VALUES
-    (?, ?, ?, ?, FALSE, ?)
+INSERT INTO shopping_list_item (
+    shopping_list_id,
+    name,
+    amount_to_buy,
+    created_by,
+    ticked,
+    category,
+    prefferd_supermarket_id
+)
+VALUES (?, ?, ?, ?, false, ?, ?)
 RETURNING
     id,
     shopping_list_id,
@@ -29,25 +28,28 @@ RETURNING
     amount_to_buy,
     created_by,
     ticked,
-    category
+    category,
+    prefferd_supermarket_id
 `
 
 type CreateItemParams struct {
-	ShoppingListID int64
-	Name           string
-	AmountToBuy    int64
-	CreatedBy      int64
-	Category       sql.NullString
+	ShoppingListID        int64
+	Name                  string
+	AmountToBuy           int64
+	CreatedBy             int64
+	Category              sql.NullString
+	PrefferdSupermarketID sql.NullInt64
 }
 
 type CreateItemRow struct {
-	ID             int64
-	ShoppingListID int64
-	Name           string
-	AmountToBuy    int64
-	CreatedBy      int64
-	Ticked         bool
-	Category       sql.NullString
+	ID                    int64
+	ShoppingListID        int64
+	Name                  string
+	AmountToBuy           int64
+	CreatedBy             int64
+	Ticked                bool
+	Category              sql.NullString
+	PrefferdSupermarketID sql.NullInt64
 }
 
 func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error) {
@@ -57,6 +59,7 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 		arg.AmountToBuy,
 		arg.CreatedBy,
 		arg.Category,
+		arg.PrefferdSupermarketID,
 	)
 	var i CreateItemRow
 	err := row.Scan(
@@ -67,15 +70,18 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 		&i.CreatedBy,
 		&i.Ticked,
 		&i.Category,
+		&i.PrefferdSupermarketID,
 	)
 	return i, err
 }
 
 const createShoppingList = `-- name: CreateShoppingList :one
-INSERT INTO
-    shopping_list(tenant_id, name, created_by)
-VALUES
-    (?, ?, ?)
+INSERT INTO shopping_list (
+    tenant_id,
+    name,
+    created_by
+)
+VALUES (?, ?, ?)
 RETURNING
     id,
     tenant_id,
@@ -101,11 +107,47 @@ func (q *Queries) CreateShoppingList(ctx context.Context, arg CreateShoppingList
 	return i, err
 }
 
+const createSupermarket = `-- name: CreateSupermarket :one
+INSERT INTO supermarket (
+    name,
+    latitude,
+    longitude
+)
+VALUES (?, ?, ?)
+RETURNING
+    id,
+    name,
+    latitude,
+    longitude
+`
+
+type CreateSupermarketParams struct {
+	Name      string
+	Latitude  float64
+	Longitude float64
+}
+
+func (q *Queries) CreateSupermarket(ctx context.Context, arg CreateSupermarketParams) (Supermarket, error) {
+	row := q.db.QueryRowContext(ctx, createSupermarket, arg.Name, arg.Latitude, arg.Longitude)
+	var i Supermarket
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Latitude,
+		&i.Longitude,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
-INSERT INTO
-    USER(tenant_id, role_id, name, email, password_hash)
-VALUES
-    (?, ?, ?, ?, ?)
+INSERT INTO user (
+    tenant_id,
+    role_id,
+    name,
+    email,
+    password_hash
+)
+VALUES (?, ?, ?, ?, ?)
 RETURNING
     id,
     tenant_id,
@@ -150,8 +192,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 }
 
 const deleteItem = `-- name: DeleteItem :exec
-DELETE FROM
-    shopping_list_item
+DELETE FROM shopping_list_item
 WHERE
     id = ?
 `
@@ -162,8 +203,7 @@ func (q *Queries) DeleteItem(ctx context.Context, id int64) error {
 }
 
 const deleteShoppingList = `-- name: DeleteShoppingList :exec
-DELETE FROM
-    shopping_list
+DELETE FROM shopping_list
 WHERE
     id = ?
     AND tenant_id = ?
@@ -176,6 +216,17 @@ type DeleteShoppingListParams struct {
 
 func (q *Queries) DeleteShoppingList(ctx context.Context, arg DeleteShoppingListParams) error {
 	_, err := q.db.ExecContext(ctx, deleteShoppingList, arg.ID, arg.TenantID)
+	return err
+}
+
+const deleteSupermarket = `-- name: DeleteSupermarket :exec
+DELETE FROM supermarket
+WHERE
+    id = ?
+`
+
+func (q *Queries) DeleteSupermarket(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteSupermarket, id)
 	return err
 }
 
@@ -227,7 +278,33 @@ func (q *Queries) GetShoppingListByID(ctx context.Context, arg GetShoppingListBy
 	return i, err
 }
 
+const getSupermarketByID = `-- name: GetSupermarketByID :one
+SELECT
+    id,
+    name,
+    latitude,
+    longitude
+FROM
+    supermarket
+WHERE
+    id = ?
+LIMIT 1
+`
+
+func (q *Queries) GetSupermarketByID(ctx context.Context, id int64) (Supermarket, error) {
+	row := q.db.QueryRowContext(ctx, getSupermarketByID, id)
+	var i Supermarket
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Latitude,
+		&i.Longitude,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
+
 SELECT
     id,
     tenant_id,
@@ -236,11 +313,10 @@ SELECT
     email,
     password_hash
 FROM
-    USER
+    user
 WHERE
     email = ?
-LIMIT
-    1
+LIMIT 1
 `
 
 // ========================================================
@@ -268,11 +344,10 @@ SELECT
     name,
     email
 FROM
-    USER
+    user
 WHERE
     id = ?
-LIMIT
-    1
+LIMIT 1
 `
 
 type GetUserByIdRow struct {
@@ -300,9 +375,11 @@ const getUserPermissions = `-- name: GetUserPermissions :many
 SELECT
     p.code
 FROM
-    USER u
-    JOIN role_permission rp ON u.role_id = rp.role_id
-    JOIN permission p ON rp.permission_id = p.id
+    user u
+JOIN role_permission rp
+    ON u.role_id = rp.role_id
+JOIN permission p
+    ON rp.permission_id = p.id
 WHERE
     u.id = ?
 `
@@ -332,6 +409,7 @@ func (q *Queries) GetUserPermissions(ctx context.Context, id int64) ([]string, e
 }
 
 const listItemsByListID = `-- name: ListItemsByListID :many
+
 SELECT
     id,
     shopping_list_id,
@@ -339,7 +417,8 @@ SELECT
     amount_to_buy,
     category,
     created_by,
-    ticked
+    ticked,
+    prefferd_supermarket_id
 FROM
     shopping_list_item
 WHERE
@@ -368,6 +447,7 @@ func (q *Queries) ListItemsByListID(ctx context.Context, shoppingListID int64) (
 			&i.Category,
 			&i.CreatedBy,
 			&i.Ticked,
+			&i.PrefferdSupermarketID,
 		); err != nil {
 			return nil, err
 		}
@@ -383,6 +463,7 @@ func (q *Queries) ListItemsByListID(ctx context.Context, shoppingListID int64) (
 }
 
 const listShoppingListsByTenant = `-- name: ListShoppingListsByTenant :many
+
 SELECT
     id,
     tenant_id,
@@ -427,9 +508,52 @@ func (q *Queries) ListShoppingListsByTenant(ctx context.Context, tenantID int64)
 	return items, nil
 }
 
+const listSupermarkets = `-- name: ListSupermarkets :many
+
+SELECT
+    id,
+    name,
+    latitude,
+    longitude
+FROM
+    supermarket
+ORDER BY
+    name ASC
+`
+
+// ========================================================
+// 4. SUPERMARKETS
+// ========================================================
+func (q *Queries) ListSupermarkets(ctx context.Context) ([]Supermarket, error) {
+	rows, err := q.db.QueryContext(ctx, listSupermarkets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Supermarket
+	for rows.Next() {
+		var i Supermarket
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Latitude,
+			&i.Longitude,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const toggleItem = `-- name: ToggleItem :exec
-UPDATE
-    shopping_list_item
+UPDATE shopping_list_item
 SET
     ticked = ?
 WHERE
@@ -444,4 +568,43 @@ type ToggleItemParams struct {
 func (q *Queries) ToggleItem(ctx context.Context, arg ToggleItemParams) error {
 	_, err := q.db.ExecContext(ctx, toggleItem, arg.Ticked, arg.ID)
 	return err
+}
+
+const updateSupermarket = `-- name: UpdateSupermarket :one
+UPDATE supermarket
+SET
+    name = ?,
+    latitude = ?,
+    longitude = ?
+WHERE
+    id = ?
+RETURNING
+    id,
+    name,
+    latitude,
+    longitude
+`
+
+type UpdateSupermarketParams struct {
+	Name      string
+	Latitude  float64
+	Longitude float64
+	ID        int64
+}
+
+func (q *Queries) UpdateSupermarket(ctx context.Context, arg UpdateSupermarketParams) (Supermarket, error) {
+	row := q.db.QueryRowContext(ctx, updateSupermarket,
+		arg.Name,
+		arg.Latitude,
+		arg.Longitude,
+		arg.ID,
+	)
+	var i Supermarket
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Latitude,
+		&i.Longitude,
+	)
+	return i, err
 }

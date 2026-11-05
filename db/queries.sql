@@ -1,6 +1,7 @@
 -- ========================================================
 -- 1. AUTH & RBAC (The Most Important Query for Permissions)
 -- ========================================================
+
 -- name: GetUserByEmail :one
 SELECT
     id,
@@ -10,11 +11,10 @@ SELECT
     email,
     password_hash
 FROM
-    USER
+    user
 WHERE
     email = ?
-LIMIT
-    1;
+LIMIT 1;
 
 -- name: GetUserById :one
 SELECT
@@ -24,17 +24,20 @@ SELECT
     name,
     email
 FROM
-    USER
+    user
 WHERE
     id = ?
-LIMIT
-    1;
+LIMIT 1;
 
 -- name: CreateUser :one
-INSERT INTO
-    USER(tenant_id, role_id, name, email, password_hash)
-VALUES
-    (?, ?, ?, ?, ?)
+INSERT INTO user (
+    tenant_id,
+    role_id,
+    name,
+    email,
+    password_hash
+)
+VALUES (?, ?, ?, ?, ?)
 RETURNING
     id,
     tenant_id,
@@ -47,9 +50,11 @@ RETURNING
 SELECT
     p.code
 FROM
-    USER u
-    JOIN role_permission rp ON u.role_id = rp.role_id
-    JOIN permission p ON rp.permission_id = p.id
+    user u
+JOIN role_permission rp
+    ON u.role_id = rp.role_id
+JOIN permission p
+    ON rp.permission_id = p.id
 WHERE
     u.id = ?;
 
@@ -66,6 +71,7 @@ WHERE
 -- ========================================================
 -- 2. SHOPPING LISTS
 -- ========================================================
+
 -- name: ListShoppingListsByTenant :many
 SELECT
     id,
@@ -92,10 +98,12 @@ WHERE
     AND tenant_id = ?;
 
 -- name: CreateShoppingList :one
-INSERT INTO
-    shopping_list(tenant_id, name, created_by)
-VALUES
-    (?, ?, ?)
+INSERT INTO shopping_list (
+    tenant_id,
+    name,
+    created_by
+)
+VALUES (?, ?, ?)
 RETURNING
     id,
     tenant_id,
@@ -103,8 +111,7 @@ RETURNING
     created_by;
 
 -- name: DeleteShoppingList :exec
-DELETE FROM
-    shopping_list
+DELETE FROM shopping_list
 WHERE
     id = ?
     AND tenant_id = ?;
@@ -112,6 +119,7 @@ WHERE
 -- ========================================================
 -- 3. ITEMS
 -- ========================================================
+
 -- name: ListItemsByListID :many
 SELECT
     id,
@@ -120,7 +128,8 @@ SELECT
     amount_to_buy,
     category,
     created_by,
-    ticked
+    ticked,
+    prefferd_supermarket_id
 FROM
     shopping_list_item
 WHERE
@@ -129,17 +138,16 @@ ORDER BY
     id ASC;
 
 -- name: CreateItem :one
-INSERT INTO
-    shopping_list_item(
-        shopping_list_id,
-        name,
-        amount_to_buy,
-        created_by,
-        ticked,
-        category
-    )
-VALUES
-    (?, ?, ?, ?, FALSE, ?)
+INSERT INTO shopping_list_item (
+    shopping_list_id,
+    name,
+    amount_to_buy,
+    created_by,
+    ticked,
+    category,
+    prefferd_supermarket_id
+)
+VALUES (?, ?, ?, ?, false, ?, ?)
 RETURNING
     id,
     shopping_list_id,
@@ -147,18 +155,76 @@ RETURNING
     amount_to_buy,
     created_by,
     ticked,
-    category;
+    category,
+    prefferd_supermarket_id;
 
 -- name: ToggleItem :exec
-UPDATE
-    shopping_list_item
+UPDATE shopping_list_item
 SET
     ticked = ?
 WHERE
     id = ?;
 
 -- name: DeleteItem :exec
-DELETE FROM
-    shopping_list_item
+DELETE FROM shopping_list_item
+WHERE
+    id = ?;
+
+-- ========================================================
+-- 4. SUPERMARKETS
+-- ========================================================
+
+-- name: ListSupermarkets :many
+SELECT
+    id,
+    name,
+    latitude,
+    longitude
+FROM
+    supermarket
+ORDER BY
+    name ASC;
+
+-- name: GetSupermarketByID :one
+SELECT
+    id,
+    name,
+    latitude,
+    longitude
+FROM
+    supermarket
+WHERE
+    id = ?
+LIMIT 1;
+
+-- name: CreateSupermarket :one
+INSERT INTO supermarket (
+    name,
+    latitude,
+    longitude
+)
+VALUES (?, ?, ?)
+RETURNING
+    id,
+    name,
+    latitude,
+    longitude;
+
+-- name: UpdateSupermarket :one
+UPDATE supermarket
+SET
+    name = ?,
+    latitude = ?,
+    longitude = ?
+WHERE
+    id = ?
+RETURNING
+    id,
+    name,
+    latitude,
+    longitude;
+
+-- name: DeleteSupermarket :exec
+DELETE FROM supermarket
 WHERE
     id = ?;

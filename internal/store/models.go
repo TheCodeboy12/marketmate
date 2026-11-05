@@ -33,13 +33,21 @@ type ShoppingList struct {
 }
 
 type ShoppingListItem struct {
-	ID             int64
-	ShoppingListID int64
-	Name           string
-	AmountToBuy    int64
-	Category       sql.NullString
-	CreatedBy      int64
-	Ticked         bool
+	ID                    int64
+	ShoppingListID        int64
+	Name                  string
+	AmountToBuy           int64
+	Category              sql.NullString
+	CreatedBy             int64
+	Ticked                bool
+	PrefferdSupermarketID sql.NullInt64
+}
+
+type Supermarket struct {
+	ID        int64
+	Name      string
+	Latitude  float64
+	Longitude float64
 }
 
 type Tenant struct {
