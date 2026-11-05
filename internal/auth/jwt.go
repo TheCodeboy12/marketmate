@@ -13,6 +13,11 @@ type Claims struct {
 	TenantID int64 `json:"tenant_id"`
 	RoleID   int64 `json:"role_id"`
 }
+
+func (c Claims) GetSubjectID() int64 {
+	return c.UserID
+}
+
 type jwtClaims struct {
 	Claims
 	jwt.RegisteredClaims
