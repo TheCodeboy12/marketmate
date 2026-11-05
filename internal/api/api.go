@@ -13,8 +13,9 @@ import (
 var logger = log.Default()
 
 type API struct {
-	store     *store.Queries
-	jwtSecret []byte
+	store      store.Querier
+	jwtSecret  []byte
+	authorizer auth.Authorizer
 }
 
 // Option represents a functional option for configuring the API instance.
@@ -36,11 +37,12 @@ func SetLogger(l *log.Logger) {
 	}
 }
 
-// New creates a new API instance.
-func New(store *store.Queries, jwtSecret []byte, opts ...Option) *API {
+// New creates a new API instance with decoupled store and authorizer.
+func New(store store.Querier, jwtSecret []byte, authorizer auth.Authorizer, opts ...Option) *API {
 	api := &API{
-		store:     store,
-		jwtSecret: jwtSecret,
+		store:      store,
+		jwtSecret:  jwtSecret,
+		authorizer: authorizer,
 	}
 
 	for _, opt := range opts {
