@@ -10,16 +10,44 @@ import (
 	"rbac-testing/internal/store"
 )
 
+var logger = log.Default()
+
 type API struct {
 	store     *store.Queries
 	jwtSecret []byte
 }
 
-func New(store *store.Queries, jwtSecret []byte) *API {
-	return &API{
+// Option represents a functional option for configuring the API instance.
+type Option func(*API)
+
+// WithLogger allows overriding the package-level logger.
+func WithLogger(l *log.Logger) Option {
+	return func(a *API) {
+		if l != nil {
+			logger = l
+		}
+	}
+}
+
+// SetLogger overrides the package-level logger.
+func SetLogger(l *log.Logger) {
+	if l != nil {
+		logger = l
+	}
+}
+
+// New creates a new API instance.
+func New(store *store.Queries, jwtSecret []byte, opts ...Option) *API {
+	api := &API{
 		store:     store,
 		jwtSecret: jwtSecret,
 	}
+
+	for _, opt := range opts {
+		opt(api)
+	}
+
+	return api
 }
 
 type LoginPayload struct {
@@ -27,15 +55,16 @@ type LoginPayload struct {
 	Password string `json:"password"`
 }
 
+// writeJSON is a package-level helper that encodes response data as JSON
+// and sends the specified HTTP status code.
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("could not encode response: %v", err)
+		logger.Printf("could not encode response: %v", err)
 	}
 }
 
-// LoginHandler handles /login
 func (api *API) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var data LoginPayload
 	err := json.NewDecoder(r.Body).Decode(&data)
@@ -73,7 +102,7 @@ func (api *API) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{
 			"message": "Internal server error",
 		})
-		log.Printf("issue generating jwt token for user %d: %v", u.ID, err)
+		logger.Printf("issue generating jwt token for user %d: %v", u.ID, err)
 		return
 	}
 
