@@ -11,9 +11,25 @@ import (
 )
 
 const createItem = `-- name: CreateItem :one
-INSERT INTO shopping_list_item (shopping_list_id, name, amount_to_buy, created_by, ticked)
-VALUES (?, ?, ?, ?, false)
-RETURNING id, shopping_list_id, name, amount_to_buy, created_by, ticked
+INSERT INTO
+    shopping_list_item(
+        shopping_list_id,
+        name,
+        amount_to_buy,
+        created_by,
+        ticked,
+        category
+    )
+VALUES
+    (?, ?, ?, ?, FALSE, ?)
+RETURNING
+    id,
+    shopping_list_id,
+    name,
+    amount_to_buy,
+    created_by,
+    ticked,
+    category
 `
 
 type CreateItemParams struct {
@@ -21,16 +37,28 @@ type CreateItemParams struct {
 	Name           string
 	AmountToBuy    int64
 	CreatedBy      int64
+	Category       sql.NullString
 }
 
-func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (ShoppingListItem, error) {
+type CreateItemRow struct {
+	ID             int64
+	ShoppingListID int64
+	Name           string
+	AmountToBuy    int64
+	CreatedBy      int64
+	Ticked         bool
+	Category       sql.NullString
+}
+
+func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error) {
 	row := q.db.QueryRowContext(ctx, createItem,
 		arg.ShoppingListID,
 		arg.Name,
 		arg.AmountToBuy,
 		arg.CreatedBy,
+		arg.Category,
 	)
-	var i ShoppingListItem
+	var i CreateItemRow
 	err := row.Scan(
 		&i.ID,
 		&i.ShoppingListID,
@@ -38,14 +66,21 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Shoppin
 		&i.AmountToBuy,
 		&i.CreatedBy,
 		&i.Ticked,
+		&i.Category,
 	)
 	return i, err
 }
 
 const createShoppingList = `-- name: CreateShoppingList :one
-INSERT INTO shopping_list (tenant_id, name, created_by)
-VALUES (?, ?, ?)
-RETURNING id, tenant_id, name, created_by
+INSERT INTO
+    shopping_list(tenant_id, name, created_by)
+VALUES
+    (?, ?, ?)
+RETURNING
+    id,
+    tenant_id,
+    name,
+    created_by
 `
 
 type CreateShoppingListParams struct {
@@ -67,9 +102,16 @@ func (q *Queries) CreateShoppingList(ctx context.Context, arg CreateShoppingList
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO user (tenant_id, role_id, name, email, password_hash)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, tenant_id, role_id, name, email
+INSERT INTO
+    USER(tenant_id, role_id, name, email, password_hash)
+VALUES
+    (?, ?, ?, ?, ?)
+RETURNING
+    id,
+    tenant_id,
+    role_id,
+    name,
+    email
 `
 
 type CreateUserParams struct {
@@ -108,8 +150,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 }
 
 const deleteItem = `-- name: DeleteItem :exec
-DELETE FROM shopping_list_item
-WHERE id = ?
+DELETE FROM
+    shopping_list_item
+WHERE
+    id = ?
 `
 
 func (q *Queries) DeleteItem(ctx context.Context, id int64) error {
@@ -118,8 +162,11 @@ func (q *Queries) DeleteItem(ctx context.Context, id int64) error {
 }
 
 const deleteShoppingList = `-- name: DeleteShoppingList :exec
-DELETE FROM shopping_list
-WHERE id = ? AND tenant_id = ?
+DELETE FROM
+    shopping_list
+WHERE
+    id = ?
+    AND tenant_id = ?
 `
 
 type DeleteShoppingListParams struct {
@@ -133,9 +180,14 @@ func (q *Queries) DeleteShoppingList(ctx context.Context, arg DeleteShoppingList
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
-SELECT id, name, created_by
-FROM role
-WHERE id = ?
+SELECT
+    id,
+    name,
+    created_by
+FROM
+    role
+WHERE
+    id = ?
 `
 
 func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
@@ -146,9 +198,16 @@ func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
 }
 
 const getShoppingListByID = `-- name: GetShoppingListByID :one
-SELECT id, tenant_id, name, created_by
-FROM shopping_list
-WHERE id = ? AND tenant_id = ?
+SELECT
+    id,
+    tenant_id,
+    name,
+    created_by
+FROM
+    shopping_list
+WHERE
+    id = ?
+    AND tenant_id = ?
 `
 
 type GetShoppingListByIDParams struct {
@@ -169,11 +228,19 @@ func (q *Queries) GetShoppingListByID(ctx context.Context, arg GetShoppingListBy
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-
-SELECT id, tenant_id, role_id, name, email, password_hash
-FROM user
-WHERE email = ?
-LIMIT 1
+SELECT
+    id,
+    tenant_id,
+    role_id,
+    name,
+    email,
+    password_hash
+FROM
+    USER
+WHERE
+    email = ?
+LIMIT
+    1
 `
 
 // ========================================================
@@ -194,11 +261,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserPermissions = `-- name: GetUserPermissions :many
-SELECT p.code
-FROM user u
-JOIN role_permission rp ON u.role_id = rp.role_id
-JOIN permission p ON rp.permission_id = p.id
-WHERE u.id = ?
+SELECT
+    p.code
+FROM
+    USER u
+    JOIN role_permission rp ON u.role_id = rp.role_id
+    JOIN permission p ON rp.permission_id = p.id
+WHERE
+    u.id = ?
 `
 
 // Resolves: User -> Role -> Permission Codes in ONE query!
@@ -226,11 +296,20 @@ func (q *Queries) GetUserPermissions(ctx context.Context, id int64) ([]string, e
 }
 
 const listItemsByListID = `-- name: ListItemsByListID :many
-
-SELECT id, shopping_list_id, name, amount_to_buy, created_by, ticked
-FROM shopping_list_item
-WHERE shopping_list_id = ?
-ORDER BY id ASC
+SELECT
+    id,
+    shopping_list_id,
+    name,
+    amount_to_buy,
+    category,
+    created_by,
+    ticked
+FROM
+    shopping_list_item
+WHERE
+    shopping_list_id = ?
+ORDER BY
+    id ASC
 `
 
 // ========================================================
@@ -250,6 +329,7 @@ func (q *Queries) ListItemsByListID(ctx context.Context, shoppingListID int64) (
 			&i.ShoppingListID,
 			&i.Name,
 			&i.AmountToBuy,
+			&i.Category,
 			&i.CreatedBy,
 			&i.Ticked,
 		); err != nil {
@@ -267,11 +347,17 @@ func (q *Queries) ListItemsByListID(ctx context.Context, shoppingListID int64) (
 }
 
 const listShoppingListsByTenant = `-- name: ListShoppingListsByTenant :many
-
-SELECT id, tenant_id, name, created_by
-FROM shopping_list
-WHERE tenant_id = ?
-ORDER BY id DESC
+SELECT
+    id,
+    tenant_id,
+    name,
+    created_by
+FROM
+    shopping_list
+WHERE
+    tenant_id = ?
+ORDER BY
+    id DESC
 `
 
 // ========================================================
@@ -306,9 +392,12 @@ func (q *Queries) ListShoppingListsByTenant(ctx context.Context, tenantID int64)
 }
 
 const toggleItem = `-- name: ToggleItem :exec
-UPDATE shopping_list_item
-SET ticked = ?
-WHERE id = ?
+UPDATE
+    shopping_list_item
+SET
+    ticked = ?
+WHERE
+    id = ?
 `
 
 type ToggleItemParams struct {

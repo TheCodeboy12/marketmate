@@ -37,6 +37,7 @@ type ShoppingListItem struct {
 	ShoppingListID int64
 	Name           string
 	AmountToBuy    int64
+	Category       sql.NullString
 	CreatedBy      int64
 	Ticked         bool
 }
