@@ -34,3 +34,4 @@ go.work.sum
 
 PLAN.md
 *.db
+/PLAN.md
