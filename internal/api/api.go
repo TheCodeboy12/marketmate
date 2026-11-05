@@ -55,6 +55,15 @@ type LoginPayload struct {
 	Password string `json:"password"`
 }
 
+// readJSON decodes the request body into dst and enforces a 1MB payload limit.
+func readJSON(r *http.Request, dst any) error {
+	maxBytes := int64(1 << 20) // 1 MB limit
+	r.Body = http.MaxBytesReader(nil, r.Body, maxBytes)
+
+	dec := json.NewDecoder(r.Body)
+	return dec.Decode(dst)
+}
+
 // writeJSON is a package-level helper that encodes response data as JSON
 // and sends the specified HTTP status code.
 func writeJSON(w http.ResponseWriter, status int, data any) {
@@ -65,44 +74,34 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 	}
 }
 
+// writeError writes a standardized JSON error message response.
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{"message": message})
+}
+
 func (api *API) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var data LoginPayload
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{
-			"message": "Invalid request body",
-		})
+	if err := readJSON(r, &data); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	// 1. Fetch user by email using request context
+	// 1. Fetch user by email and verify password
 	u, err := api.store.GetUserByEmail(r.Context(), data.Email)
-	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{
-			"message": "Invalid email or password",
-		})
+	if err != nil || !auth.CheckPassword(u.PasswordHash.String, data.Password) {
+		writeError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
-	// 2. Compare stored password hash against incoming plaintext password
-	if !auth.CheckPassword(u.PasswordHash.String, data.Password) {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{
-			"message": "Invalid email or password",
-		})
-		return
-	}
-
-	// 3. Issue JWT token
+	// 2. Issue JWT token
 	jwtToken, err := auth.GenerateToken(auth.Claims{
 		UserID:   u.ID,
 		TenantID: u.TenantID,
 		RoleID:   u.RoleID,
 	}, api.jwtSecret)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{
-			"message": "Internal server error",
-		})
 		logger.Printf("issue generating jwt token for user %d: %v", u.ID, err)
+		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 
