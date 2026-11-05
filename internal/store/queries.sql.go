@@ -172,20 +172,15 @@ const getUserByEmail = `-- name: GetUserByEmail :one
 
 SELECT id, tenant_id, role_id, name, email, password_hash
 FROM user
-WHERE email = ? AND tenant_id = ?
+WHERE email = ?
 LIMIT 1
 `
-
-type GetUserByEmailParams struct {
-	Email    string
-	TenantID int64
-}
 
 // ========================================================
 // 1. AUTH & RBAC (The Most Important Query for Permissions)
 // ========================================================
-func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, arg.Email, arg.TenantID)
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,

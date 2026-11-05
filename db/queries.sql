@@ -5,7 +5,7 @@
 -- name: GetUserByEmail :one
 SELECT id, tenant_id, role_id, name, email, password_hash
 FROM user
-WHERE email = ? AND tenant_id = ?
+WHERE email = ?
 LIMIT 1;
 
 -- name: CreateUser :one
