@@ -260,6 +260,42 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const getUserById = `-- name: GetUserById :one
+SELECT
+    id,
+    tenant_id,
+    role_id,
+    name,
+    email
+FROM
+    USER
+WHERE
+    id = ?
+LIMIT
+    1
+`
+
+type GetUserByIdRow struct {
+	ID       int64
+	TenantID int64
+	RoleID   int64
+	Name     string
+	Email    string
+}
+
+func (q *Queries) GetUserById(ctx context.Context, id int64) (GetUserByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var i GetUserByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.TenantID,
+		&i.RoleID,
+		&i.Name,
+		&i.Email,
+	)
+	return i, err
+}
+
 const getUserPermissions = `-- name: GetUserPermissions :many
 SELECT
     p.code

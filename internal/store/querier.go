@@ -20,6 +20,7 @@ type Querier interface {
 	// 1. AUTH & RBAC (The Most Important Query for Permissions)
 	// ========================================================
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserById(ctx context.Context, id int64) (GetUserByIdRow, error)
 	// Resolves: User -> Role -> Permission Codes in ONE query!
 	GetUserPermissions(ctx context.Context, id int64) ([]string, error)
 	// ========================================================

@@ -47,7 +47,7 @@ func main() {
 	mux.Handle("POST /lists", server.Authenticate(
 		server.RequirePermission("lists:create")(http.HandlerFunc(server.CreateShoppingList)),
 	))
-
+	mux.Handle("GET /me", server.Authenticate(http.HandlerFunc(server.MeHandler)))
 	// DELETE /lists/{id} -> requires lists:delete
 	mux.Handle("DELETE /lists/{id}", server.Authenticate(
 		server.RequirePermission("lists:delete")(http.HandlerFunc(server.DeleteShoppingList)),

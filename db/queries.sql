@@ -16,6 +16,20 @@ WHERE
 LIMIT
     1;
 
+-- name: GetUserById :one
+SELECT
+    id,
+    tenant_id,
+    role_id,
+    name,
+    email
+FROM
+    USER
+WHERE
+    id = ?
+LIMIT
+    1;
+
 -- name: CreateUser :one
 INSERT INTO
     USER(tenant_id, role_id, name, email, password_hash)
