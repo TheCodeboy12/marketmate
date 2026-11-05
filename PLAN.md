@@ -6,7 +6,7 @@ The api methods we will expose are:
 
 | endpoint | http method | description |
 | -------------- | --------------- | --------------- |
-| /login | POST | The user will provide: `email` and `password` in the body of the request |
+| /login | POST | The user will provide: `email` and `password` in the body of the request. This endpoint is not protected by the JWT |
 
 ### Authentication and auth
 
@@ -14,8 +14,7 @@ we are going to use jwt autherazation using claims that are :
 
 ```go
 type Claims struct {
- UserID   int64 `json:"user_id"`
- TenantID int64 `json:"tenant_id"`
+ UserID   int64 `json:"user_id"` TenantID int64 `json:"tenant_id"`
  RoleID   int64 `json:"role_id"`
 }
 ```
