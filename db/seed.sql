@@ -7,22 +7,15 @@ INSERT OR IGNORE INTO "role" ("id", "name", "created_by") VALUES
 (2, 'member', NULL),
 (3, 'viewer', NULL);
 
--- 3. Seeded System User (Created after role 1 and tenant 1 exist)
+-- 3. Seeded Users (password is 'password123' for all test users)
+-- bcrypt hash: $2a$10$ZwmZ/2LNI7IE4sU44xqzleuSCBvEJCMdfEyF9f7bff0ERU1EaRY5K
 INSERT OR IGNORE INTO "user" (
-  "id",
-  "tenant_id",
-  "role_id",
-  "name",
-  "email",
-  "password_hash"
-) VALUES ( 
-  1,
-  1,
-  1,
-  'SYSTEM',
-  'system@main_tenant.com',
-  NULL
-);
+  "id", "tenant_id", "role_id", "name", "email", "password_hash"
+) VALUES 
+(1, 1, 1, 'SYSTEM', 'system@main_tenant.com', '$2a$10$ZwmZ/2LNI7IE4sU44xqzleuSCBvEJCMdfEyF9f7bff0ERU1EaRY5K'),
+(2, 1, 1, 'Alice Admin', 'alice@example.com', '$2a$10$ZwmZ/2LNI7IE4sU44xqzleuSCBvEJCMdfEyF9f7bff0ERU1EaRY5K'),
+(3, 1, 2, 'Bob Member', 'bob@example.com', '$2a$10$ZwmZ/2LNI7IE4sU44xqzleuSCBvEJCMdfEyF9f7bff0ERU1EaRY5K'),
+(4, 1, 3, 'Charlie Viewer', 'charlie@example.com', '$2a$10$ZwmZ/2LNI7IE4sU44xqzleuSCBvEJCMdfEyF9f7bff0ERU1EaRY5K');
 
 -- 4. Permissions
 INSERT OR IGNORE INTO "permission" ("id", "code", "description") VALUES
