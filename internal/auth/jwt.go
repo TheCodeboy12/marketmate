@@ -11,7 +11,6 @@ import (
 type Claims struct {
 	UserID   int64 `json:"user_id"`
 	TenantID int64 `json:"tenant_id"`
-	RoleID   int64 `json:"role_id"`
 }
 
 func (c Claims) GetSubjectID() int64 {

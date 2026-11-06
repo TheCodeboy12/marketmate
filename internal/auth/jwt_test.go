@@ -20,7 +20,6 @@ func TestGenerateToken(t *testing.T) {
 			cc: auth.Claims{
 				UserID:   1,
 				TenantID: 1,
-				RoleID:   1,
 			},
 			secretKey: []byte(mockedKey),
 		},

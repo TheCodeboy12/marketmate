@@ -99,7 +99,6 @@ func (api *API) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	jwtToken, err := auth.GenerateToken(auth.Claims{
 		UserID:   u.ID,
 		TenantID: u.TenantID,
-		RoleID:   u.RoleID,
 	}, api.jwtSecret)
 	if err != nil {
 		logger.Printf("issue generating jwt token for user %d: %v", u.ID, err)
