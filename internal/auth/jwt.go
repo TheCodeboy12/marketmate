@@ -3,13 +3,14 @@ package auth
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type Claims struct {
-	UserID   int64 `json:"user_id"`
+	UserID   int64 `json:"-"`
 	TenantID int64 `json:"tenant_id"`
 }
 
@@ -26,6 +27,7 @@ type jwtClaims struct {
 func GenerateToken(cc Claims, secretKey []byte) (string, error) {
 	claims := jwtClaims{
 		Claims:    cc,
+		Subject:   strconv.FormatInt(cc.UserID, 10),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
@@ -51,6 +53,16 @@ func ValidateToken(tokenString string, secretKey []byte) (*Claims, error) {
 	if !ok || !token.Valid {
 		return nil, fmt.Errorf("invalid token")
 	}
+
+	if claims.Subject == "" {
+		return nil, fmt.Errorf("invalid token: missing sub claim")
+	}
+
+	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid sub claim: %w", err)
+	}
+	claims.UserID = userID
 
 	// 3. Return the clean domain Claims!
 	return &claims.Claims, nil

@@ -61,6 +61,19 @@ func main() {
 			r.With(server.RequirePermission("lists:read")).Get("/", server.ListShoppingLists)
 			r.With(server.RequirePermission("lists:create")).Post("/", server.CreateShoppingList)
 			r.With(server.RequirePermission("lists:delete")).Delete("/{id}", server.DeleteShoppingList)
+
+			// Items within a list
+			r.Route("/{listID}/items", func(r chi.Router) {
+				r.With(server.RequirePermission("lists:read")).Get("/", server.ListItemsHandler)
+				r.With(server.RequirePermission("items:create")).Post("/", server.CreateItemHandler)
+			})
+		})
+
+		// Items direct actions
+		r.Route("/items", func(r chi.Router) {
+			r.With(server.RequirePermission("items:check")).Patch("/{id}/toggle", server.ToggleItemHandler)
+			r.With(server.RequirePermission("items:create")).Put("/{id}", server.UpdateListItemHandler)
+			r.With(server.RequirePermission("items:delete")).Delete("/{id}", server.DeleteItemHandler)
 		})
 
 		// Users

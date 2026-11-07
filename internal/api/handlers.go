@@ -107,7 +107,9 @@ func (api *API) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-
+	// TODO: make this error checking block and any other similar
+	// ones not return the first error they find
+	// but return all of them
 	if req.RoleID <= 0 {
 		writeError(w, http.StatusBadRequest, "role_id is required")
 		return

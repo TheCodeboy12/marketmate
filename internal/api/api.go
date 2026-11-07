@@ -137,6 +137,19 @@ func (api *API) Routes() chi.Router {
 			r.With(api.RequirePermission("lists:read")).Get("/", api.ListShoppingLists)
 			r.With(api.RequirePermission("lists:create")).Post("/", api.CreateShoppingList)
 			r.With(api.RequirePermission("lists:delete")).Delete("/{id}", api.DeleteShoppingList)
+
+			// Items within a list
+			r.Route("/{listID}/items", func(r chi.Router) {
+				r.With(api.RequirePermission("lists:read")).Get("/", api.ListItemsHandler)
+				r.With(api.RequirePermission("items:create")).Post("/", api.CreateItemHandler)
+			})
+		})
+
+		// Items direct actions
+		r.Route("/items", func(r chi.Router) {
+			r.With(api.RequirePermission("items:check")).Patch("/{id}/toggle", api.ToggleItemHandler)
+			r.With(api.RequirePermission("items:create")).Put("/{id}", api.UpdateListItemHandler)
+			r.With(api.RequirePermission("items:delete")).Delete("/{id}", api.DeleteItemHandler)
 		})
 
 		// Users
