@@ -1,16 +1,16 @@
 -- 1. Default Tenant
 INSERT
-    OR IGNORE INTO "tenant" ("id", "name")
+    OR IGNORE INTO "tenant" ("id", "name", "domain")
 VALUES
-    (1, 'Main Tenant');
+    (1, 'Main Tenant', 'main_tenant.com');
 
--- 2. Seeded System Roles (created_by is NULL)
+-- 2. Seeded System Roles
 INSERT
-    OR IGNORE INTO "role" ("id", "name", "created_by")
+    OR IGNORE INTO "role" ("id", "name", "tenant_id", "created_by")
 VALUES
-    (1, 'admin', NULL),
-    (2, 'member', NULL),
-    (3, 'viewer', NULL);
+    (1, 'admin', 1, NULL),
+    (2, 'member', 1, NULL),
+    (3, 'viewer', 1, NULL);
 
 -- 3. Seeded Users (password is 'password123' for all test users)
 -- bcrypt hash: $2a$10$ZwmZ/2LNI7IE4sU44xqzleuSCBvEJCMdfEyF9f7bff0ERU1EaRY5K
