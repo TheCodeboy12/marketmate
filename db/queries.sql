@@ -3,13 +3,13 @@
 -- ========================================================
 -- name: ListUsers :many
 SELECT
-    id,
-    tenant_id,
-    role_id,
-    name,
-    email
+    *
 FROM
-    user
+    user_public
+WHERE
+    tenant_id = ?
+ORDER BY
+    id ASC
 LIMIT
     ?;
 
@@ -39,6 +39,7 @@ FROM
     user
 WHERE
     id = ?
+    AND tenant_id = ?
 LIMIT
     1;
 
@@ -64,11 +65,12 @@ RETURNING
 UPDATE
     user
 SET
-    name = ?,
-    email = ?,
-    role_id = ?
+    name = coalesce(?, name),
+    email = coalesce(?, email),
+    role_id = coalesce(?, role_id)
 WHERE
     id = ?
+    AND tenant_id = ?
 RETURNING
     id,
     tenant_id,
@@ -82,13 +84,15 @@ UPDATE
 SET
     password_hash = ?
 WHERE
-    id = ?;
+    id = ?
+    AND tenant_id = ?;
 
 -- name: DeleteUser :exec
 DELETE FROM
     user
 WHERE
-    id = ?;
+    id = ?
+    AND tenant_id = ?;
 
 -- name: GetUserPermissions :many
 -- Resolves: User -> Role -> Permission Codes in ONE query!
@@ -105,11 +109,13 @@ WHERE
 SELECT
     id,
     name,
+    tenant_id,
     created_by
 FROM
     role
 WHERE
-    id = ?;
+    id = ?
+    AND tenant_id = ?;
 
 -- ========================================================
 -- 2. SHOPPING LISTS
@@ -162,20 +168,22 @@ WHERE
 -- ========================================================
 -- name: ListItemsByListID :many
 SELECT
-    id,
-    shopping_list_id,
-    name,
-    amount_to_buy,
-    category,
-    created_by,
-    ticked,
-    prefferd_supermarket_id
+    sli.id,
+    sli.shopping_list_id,
+    sli.name,
+    sli.amount_to_buy,
+    sli.category,
+    sli.created_by,
+    sli.ticked,
+    sli.prefferd_supermarket_id
 FROM
-    shopping_list_item
+    shopping_list_item sli
+    JOIN shopping_list sl ON sli.shopping_list_id = sl.id
 WHERE
-    shopping_list_id = ?
+    sli.shopping_list_id = ?
+    AND sl.tenant_id = ?
 ORDER BY
-    id ASC;
+    sli.id ASC;
 
 -- name: CreateItem :one
 INSERT INTO
@@ -189,16 +197,25 @@ INSERT INTO
         prefferd_supermarket_id
     )
 VALUES
-    (?, ?, ?, ?, false, ?, ?)
+    (
+        (
+            SELECT
+                sl.id
+            FROM
+                shopping_list sl
+            WHERE
+                sl.id = ?
+                AND sl.tenant_id = ?
+        ),
+        ?,
+        ?,
+        ?,
+        false,
+        ?,
+        ?
+    )
 RETURNING
-    id,
-    shopping_list_id,
-    name,
-    amount_to_buy,
-    created_by,
-    ticked,
-    category,
-    prefferd_supermarket_id;
+    *;
 
 -- name: ToggleItem :exec
 UPDATE
@@ -206,13 +223,53 @@ UPDATE
 SET
     ticked = ?
 WHERE
-    id = ?;
+    shopping_list_item.id = ?
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            shopping_list sl
+        WHERE
+            sl.id = shopping_list_item.shopping_list_id
+            AND sl.tenant_id = ?
+    );
+
+-- name: UpdateListItem :one
+UPDATE
+    shopping_list_item
+SET
+    name = coalesce(?, name),
+    amount_to_buy = coalesce(?, amount_to_buy),
+    category = coalesce(?, category),
+    prefferd_supermarket_id = coalesce(?, prefferd_supermarket_id)
+WHERE
+    shopping_list_item.id = ?
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            shopping_list sl
+        WHERE
+            sl.id = shopping_list_item.shopping_list_id
+            AND sl.tenant_id = ?
+    )
+RETURNING
+    *;
 
 -- name: DeleteItem :exec
 DELETE FROM
     shopping_list_item
 WHERE
-    id = ?;
+    shopping_list_item.id = ?
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            shopping_list sl
+        WHERE
+            sl.id = shopping_list_item.shopping_list_id
+            AND sl.tenant_id = ?
+    );
 
 -- ========================================================
 -- 4. SUPERMARKETS

@@ -9,25 +9,25 @@ import (
 )
 
 type Querier interface {
-	CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error)
+	CreateItem(ctx context.Context, arg CreateItemParams) (ShoppingListItem, error)
 	CreateShoppingList(ctx context.Context, arg CreateShoppingListParams) (ShoppingList, error)
 	CreateSupermarket(ctx context.Context, arg CreateSupermarketParams) (Supermarket, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
-	DeleteItem(ctx context.Context, id int64) error
+	DeleteItem(ctx context.Context, arg DeleteItemParams) error
 	DeleteShoppingList(ctx context.Context, arg DeleteShoppingListParams) error
 	DeleteSupermarket(ctx context.Context, id int64) error
-	DeleteUser(ctx context.Context, id int64) error
-	GetRoleByID(ctx context.Context, id int64) (Role, error)
+	DeleteUser(ctx context.Context, arg DeleteUserParams) error
+	GetRoleByID(ctx context.Context, arg GetRoleByIDParams) (Role, error)
 	GetShoppingListByID(ctx context.Context, arg GetShoppingListByIDParams) (ShoppingList, error)
 	GetSupermarketByID(ctx context.Context, id int64) (Supermarket, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserById(ctx context.Context, id int64) (GetUserByIdRow, error)
+	GetUserById(ctx context.Context, arg GetUserByIdParams) (GetUserByIdRow, error)
 	// Resolves: User -> Role -> Permission Codes in ONE query!
 	GetUserPermissions(ctx context.Context, id int64) ([]string, error)
 	// ========================================================
 	// 3. ITEMS
 	// ========================================================
-	ListItemsByListID(ctx context.Context, shoppingListID int64) ([]ShoppingListItem, error)
+	ListItemsByListID(ctx context.Context, arg ListItemsByListIDParams) ([]ShoppingListItem, error)
 	// ========================================================
 	// 2. SHOPPING LISTS
 	// ========================================================
@@ -39,8 +39,9 @@ type Querier interface {
 	// ========================================================
 	// 1. AUTH & RBAC (The Most Important Query for Permissions)
 	// ========================================================
-	ListUsers(ctx context.Context, limit int64) ([]ListUsersRow, error)
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]UserPublic, error)
 	ToggleItem(ctx context.Context, arg ToggleItemParams) error
+	UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ShoppingListItem, error)
 	UpdateSupermarket(ctx context.Context, arg UpdateSupermarketParams) (Supermarket, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error

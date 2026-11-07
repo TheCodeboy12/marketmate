@@ -52,6 +52,7 @@ func TestListUsersHandler(t *testing.T) {
 	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodGet, "/users?limit=2", nil)
+	req = req.WithContext(contextWithUser(req.Context(), 2, 1))
 	rec := httptest.NewRecorder()
 
 	apiInstance.ListUsersHandler(rec, req)
@@ -60,7 +61,7 @@ func TestListUsersHandler(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var users []store.ListUsersRow
+	var users []store.UserPublic
 	if err := json.Unmarshal(rec.Body.Bytes(), &users); err != nil {
 		t.Fatalf("failed to parse response: %v", err)
 	}
@@ -77,6 +78,7 @@ func TestGetUserHandler(t *testing.T) {
 	t.Run("existing user", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/users/2", nil)
 		req.SetPathValue("userID", "2")
+		req = req.WithContext(contextWithUser(req.Context(), 2, 1))
 		rec := httptest.NewRecorder()
 
 		apiInstance.GetUserHandler(rec, req)
@@ -98,6 +100,7 @@ func TestGetUserHandler(t *testing.T) {
 	t.Run("nonexistent user", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/users/9999", nil)
 		req.SetPathValue("userID", "9999")
+		req = req.WithContext(contextWithUser(req.Context(), 2, 1))
 		rec := httptest.NewRecorder()
 
 		apiInstance.GetUserHandler(rec, req)
@@ -110,6 +113,7 @@ func TestGetUserHandler(t *testing.T) {
 	t.Run("invalid user ID", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/users/abc", nil)
 		req.SetPathValue("userID", "abc")
+		req = req.WithContext(contextWithUser(req.Context(), 2, 1))
 		rec := httptest.NewRecorder()
 
 		apiInstance.GetUserHandler(rec, req)
@@ -232,7 +236,10 @@ func TestDeleteUserHandler(t *testing.T) {
 		}
 
 		// Verify user 4 is gone
-		_, err := queries.GetUserById(context.Background(), 4)
+		_, err := queries.GetUserById(context.Background(), store.GetUserByIdParams{
+			ID:       4,
+			TenantID: 1,
+		})
 		if err == nil {
 			t.Fatalf("expected user 4 to be deleted, but found in db")
 		}

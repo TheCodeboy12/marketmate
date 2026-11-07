@@ -17,6 +17,7 @@ type Permission struct {
 type Role struct {
 	ID        int64
 	Name      string
+	TenantID  int64
 	CreatedBy sql.NullInt64
 }
 
@@ -51,8 +52,9 @@ type Supermarket struct {
 }
 
 type Tenant struct {
-	ID   int64
-	Name string
+	ID     int64
+	Name   string
+	Domain string
 }
 
 type User struct {
@@ -62,4 +64,12 @@ type User struct {
 	Name         string
 	Email        string
 	PasswordHash sql.NullString
+}
+
+type UserPublic struct {
+	ID       int64
+	TenantID int64
+	RoleID   int64
+	Name     string
+	Email    string
 }

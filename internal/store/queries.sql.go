@@ -22,56 +22,56 @@ INSERT INTO
         prefferd_supermarket_id
     )
 VALUES
-    (?, ?, ?, ?, false, ?, ?)
+    (
+        (
+            SELECT
+                sl.id
+            FROM
+                shopping_list sl
+            WHERE
+                sl.id = ?
+                AND sl.tenant_id = ?
+        ),
+        ?,
+        ?,
+        ?,
+        false,
+        ?,
+        ?
+    )
 RETURNING
-    id,
-    shopping_list_id,
-    name,
-    amount_to_buy,
-    created_by,
-    ticked,
-    category,
-    prefferd_supermarket_id
+    id, shopping_list_id, name, amount_to_buy, category, created_by, ticked, prefferd_supermarket_id
 `
 
 type CreateItemParams struct {
-	ShoppingListID        int64
-	Name                  string
-	AmountToBuy           int64
-	CreatedBy             int64
-	Category              sql.NullString
-	PrefferdSupermarketID sql.NullInt64
-}
-
-type CreateItemRow struct {
 	ID                    int64
-	ShoppingListID        int64
+	TenantID              int64
 	Name                  string
 	AmountToBuy           int64
 	CreatedBy             int64
-	Ticked                bool
 	Category              sql.NullString
 	PrefferdSupermarketID sql.NullInt64
 }
 
-func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateItemRow, error) {
+func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (ShoppingListItem, error) {
 	row := q.db.QueryRowContext(ctx, createItem,
-		arg.ShoppingListID,
+		arg.ID,
+		arg.TenantID,
 		arg.Name,
 		arg.AmountToBuy,
 		arg.CreatedBy,
 		arg.Category,
 		arg.PrefferdSupermarketID,
 	)
-	var i CreateItemRow
+	var i ShoppingListItem
 	err := row.Scan(
 		&i.ID,
 		&i.ShoppingListID,
 		&i.Name,
 		&i.AmountToBuy,
+		&i.Category,
 		&i.CreatedBy,
 		&i.Ticked,
-		&i.Category,
 		&i.PrefferdSupermarketID,
 	)
 	return i, err
@@ -195,11 +195,25 @@ const deleteItem = `-- name: DeleteItem :exec
 DELETE FROM
     shopping_list_item
 WHERE
-    id = ?
+    shopping_list_item.id = ?
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            shopping_list sl
+        WHERE
+            sl.id = shopping_list_item.shopping_list_id
+            AND sl.tenant_id = ?
+    )
 `
 
-func (q *Queries) DeleteItem(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteItem, id)
+type DeleteItemParams struct {
+	ID       int64
+	TenantID int64
+}
+
+func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
+	_, err := q.db.ExecContext(ctx, deleteItem, arg.ID, arg.TenantID)
 	return err
 }
 
@@ -238,10 +252,16 @@ DELETE FROM
     user
 WHERE
     id = ?
+    AND tenant_id = ?
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
+type DeleteUserParams struct {
+	ID       int64
+	TenantID int64
+}
+
+func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, arg.ID, arg.TenantID)
 	return err
 }
 
@@ -249,17 +269,29 @@ const getRoleByID = `-- name: GetRoleByID :one
 SELECT
     id,
     name,
+    tenant_id,
     created_by
 FROM
     role
 WHERE
     id = ?
+    AND tenant_id = ?
 `
 
-func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
-	row := q.db.QueryRowContext(ctx, getRoleByID, id)
+type GetRoleByIDParams struct {
+	ID       int64
+	TenantID int64
+}
+
+func (q *Queries) GetRoleByID(ctx context.Context, arg GetRoleByIDParams) (Role, error) {
+	row := q.db.QueryRowContext(ctx, getRoleByID, arg.ID, arg.TenantID)
 	var i Role
-	err := row.Scan(&i.ID, &i.Name, &i.CreatedBy)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.TenantID,
+		&i.CreatedBy,
+	)
 	return i, err
 }
 
@@ -360,9 +392,15 @@ FROM
     user
 WHERE
     id = ?
+    AND tenant_id = ?
 LIMIT
     1
 `
+
+type GetUserByIdParams struct {
+	ID       int64
+	TenantID int64
+}
 
 type GetUserByIdRow struct {
 	ID       int64
@@ -372,8 +410,8 @@ type GetUserByIdRow struct {
 	Email    string
 }
 
-func (q *Queries) GetUserById(ctx context.Context, id int64) (GetUserByIdRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserById, id)
+func (q *Queries) GetUserById(ctx context.Context, arg GetUserByIdParams) (GetUserByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, arg.ID, arg.TenantID)
 	var i GetUserByIdRow
 	err := row.Scan(
 		&i.ID,
@@ -422,27 +460,34 @@ func (q *Queries) GetUserPermissions(ctx context.Context, id int64) ([]string, e
 
 const listItemsByListID = `-- name: ListItemsByListID :many
 SELECT
-    id,
-    shopping_list_id,
-    name,
-    amount_to_buy,
-    category,
-    created_by,
-    ticked,
-    prefferd_supermarket_id
+    sli.id,
+    sli.shopping_list_id,
+    sli.name,
+    sli.amount_to_buy,
+    sli.category,
+    sli.created_by,
+    sli.ticked,
+    sli.prefferd_supermarket_id
 FROM
-    shopping_list_item
+    shopping_list_item sli
+    JOIN shopping_list sl ON sli.shopping_list_id = sl.id
 WHERE
-    shopping_list_id = ?
+    sli.shopping_list_id = ?
+    AND sl.tenant_id = ?
 ORDER BY
-    id ASC
+    sli.id ASC
 `
+
+type ListItemsByListIDParams struct {
+	ShoppingListID int64
+	TenantID       int64
+}
 
 // ========================================================
 // 3. ITEMS
 // ========================================================
-func (q *Queries) ListItemsByListID(ctx context.Context, shoppingListID int64) ([]ShoppingListItem, error) {
-	rows, err := q.db.QueryContext(ctx, listItemsByListID, shoppingListID)
+func (q *Queries) ListItemsByListID(ctx context.Context, arg ListItemsByListIDParams) ([]ShoppingListItem, error) {
+	rows, err := q.db.QueryContext(ctx, listItemsByListID, arg.ShoppingListID, arg.TenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -563,37 +608,34 @@ func (q *Queries) ListSupermarkets(ctx context.Context) ([]Supermarket, error) {
 
 const listUsers = `-- name: ListUsers :many
 SELECT
-    id,
-    tenant_id,
-    role_id,
-    name,
-    email
+    id, tenant_id, role_id, name, email
 FROM
-    user
+    user_public
+WHERE
+    tenant_id = ?
+ORDER BY
+    id ASC
 LIMIT
     ?
 `
 
-type ListUsersRow struct {
-	ID       int64
+type ListUsersParams struct {
 	TenantID int64
-	RoleID   int64
-	Name     string
-	Email    string
+	Limit    int64
 }
 
 // ========================================================
 // 1. AUTH & RBAC (The Most Important Query for Permissions)
 // ========================================================
-func (q *Queries) ListUsers(ctx context.Context, limit int64) ([]ListUsersRow, error) {
-	rows, err := q.db.QueryContext(ctx, listUsers, limit)
+func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]UserPublic, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers, arg.TenantID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListUsersRow
+	var items []UserPublic
 	for rows.Next() {
-		var i ListUsersRow
+		var i UserPublic
 		if err := rows.Scan(
 			&i.ID,
 			&i.TenantID,
@@ -620,17 +662,82 @@ UPDATE
 SET
     ticked = ?
 WHERE
-    id = ?
+    shopping_list_item.id = ?
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            shopping_list sl
+        WHERE
+            sl.id = shopping_list_item.shopping_list_id
+            AND sl.tenant_id = ?
+    )
 `
 
 type ToggleItemParams struct {
-	Ticked bool
-	ID     int64
+	Ticked   bool
+	ID       int64
+	TenantID int64
 }
 
 func (q *Queries) ToggleItem(ctx context.Context, arg ToggleItemParams) error {
-	_, err := q.db.ExecContext(ctx, toggleItem, arg.Ticked, arg.ID)
+	_, err := q.db.ExecContext(ctx, toggleItem, arg.Ticked, arg.ID, arg.TenantID)
 	return err
+}
+
+const updateListItem = `-- name: UpdateListItem :one
+UPDATE
+    shopping_list_item
+SET
+    name = coalesce(?, name),
+    amount_to_buy = coalesce(?, amount_to_buy),
+    category = coalesce(?, category),
+    prefferd_supermarket_id = coalesce(?, prefferd_supermarket_id)
+WHERE
+    shopping_list_item.id = ?
+    AND EXISTS (
+        SELECT
+            1
+        FROM
+            shopping_list sl
+        WHERE
+            sl.id = shopping_list_item.shopping_list_id
+            AND sl.tenant_id = ?
+    )
+RETURNING
+    id, shopping_list_id, name, amount_to_buy, category, created_by, ticked, prefferd_supermarket_id
+`
+
+type UpdateListItemParams struct {
+	Name                  string
+	AmountToBuy           int64
+	Category              sql.NullString
+	PrefferdSupermarketID sql.NullInt64
+	ID                    int64
+	TenantID              int64
+}
+
+func (q *Queries) UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ShoppingListItem, error) {
+	row := q.db.QueryRowContext(ctx, updateListItem,
+		arg.Name,
+		arg.AmountToBuy,
+		arg.Category,
+		arg.PrefferdSupermarketID,
+		arg.ID,
+		arg.TenantID,
+	)
+	var i ShoppingListItem
+	err := row.Scan(
+		&i.ID,
+		&i.ShoppingListID,
+		&i.Name,
+		&i.AmountToBuy,
+		&i.Category,
+		&i.CreatedBy,
+		&i.Ticked,
+		&i.PrefferdSupermarketID,
+	)
+	return i, err
 }
 
 const updateSupermarket = `-- name: UpdateSupermarket :one
@@ -677,11 +784,12 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE
     user
 SET
-    name = ?,
-    email = ?,
-    role_id = ?
+    name = coalesce(?, name),
+    email = coalesce(?, email),
+    role_id = coalesce(?, role_id)
 WHERE
     id = ?
+    AND tenant_id = ?
 RETURNING
     id,
     tenant_id,
@@ -691,10 +799,11 @@ RETURNING
 `
 
 type UpdateUserParams struct {
-	Name   string
-	Email  string
-	RoleID int64
-	ID     int64
+	Name     string
+	Email    string
+	RoleID   int64
+	ID       int64
+	TenantID int64
 }
 
 type UpdateUserRow struct {
@@ -711,6 +820,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateU
 		arg.Email,
 		arg.RoleID,
 		arg.ID,
+		arg.TenantID,
 	)
 	var i UpdateUserRow
 	err := row.Scan(
@@ -730,14 +840,16 @@ SET
     password_hash = ?
 WHERE
     id = ?
+    AND tenant_id = ?
 `
 
 type UpdateUserPasswordParams struct {
 	PasswordHash sql.NullString
 	ID           int64
+	TenantID     int64
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID, arg.TenantID)
 	return err
 }
