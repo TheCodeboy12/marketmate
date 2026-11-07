@@ -53,6 +53,23 @@ func main() {
 		server.RequirePermission("lists:delete")(http.HandlerFunc(server.DeleteShoppingList)),
 	))
 
+	// User Routes
+	mux.Handle("GET /users", server.Authenticate(
+		server.RequirePermission("users:read")(http.HandlerFunc(server.ListUsersHandler)),
+	))
+	mux.Handle("GET /users/{userID}", server.Authenticate(
+		server.RequirePermission("users:read")(http.HandlerFunc(server.GetUserHandler)),
+	))
+	mux.Handle("POST /users", server.Authenticate(
+		server.RequirePermission("users:create")(http.HandlerFunc(server.CreateUserHandler)),
+	))
+	mux.Handle("PUT /users/{userID}", server.Authenticate(
+		server.RequirePermission("users:modify")(http.HandlerFunc(server.UpdateUserHandler)),
+	))
+	mux.Handle("DELETE /users/{userID}", server.Authenticate(
+		server.RequirePermission("users:delete")(http.HandlerFunc(server.DeleteUserHandler)),
+	))
+
 	log.Println("Server listening on http://localhost:8080...")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatalf("server error: %v", err)
