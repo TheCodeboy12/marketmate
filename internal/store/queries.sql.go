@@ -11,16 +11,18 @@ import (
 )
 
 const createItem = `-- name: CreateItem :one
-INSERT INTO shopping_list_item (
-    shopping_list_id,
-    name,
-    amount_to_buy,
-    created_by,
-    ticked,
-    category,
-    prefferd_supermarket_id
-)
-VALUES (?, ?, ?, ?, false, ?, ?)
+INSERT INTO
+    shopping_list_item (
+        shopping_list_id,
+        name,
+        amount_to_buy,
+        created_by,
+        ticked,
+        category,
+        prefferd_supermarket_id
+    )
+VALUES
+    (?, ?, ?, ?, false, ?, ?)
 RETURNING
     id,
     shopping_list_id,
@@ -76,12 +78,10 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (CreateI
 }
 
 const createShoppingList = `-- name: CreateShoppingList :one
-INSERT INTO shopping_list (
-    tenant_id,
-    name,
-    created_by
-)
-VALUES (?, ?, ?)
+INSERT INTO
+    shopping_list (tenant_id, name, created_by)
+VALUES
+    (?, ?, ?)
 RETURNING
     id,
     tenant_id,
@@ -108,12 +108,10 @@ func (q *Queries) CreateShoppingList(ctx context.Context, arg CreateShoppingList
 }
 
 const createSupermarket = `-- name: CreateSupermarket :one
-INSERT INTO supermarket (
-    name,
-    latitude,
-    longitude
-)
-VALUES (?, ?, ?)
+INSERT INTO
+    supermarket (name, latitude, longitude)
+VALUES
+    (?, ?, ?)
 RETURNING
     id,
     name,
@@ -140,14 +138,16 @@ func (q *Queries) CreateSupermarket(ctx context.Context, arg CreateSupermarketPa
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO user (
-    tenant_id,
-    role_id,
-    name,
-    email,
-    password_hash
-)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO
+    user (
+        tenant_id,
+        role_id,
+        name,
+        email,
+        password_hash
+    )
+VALUES
+    (?, ?, ?, ?, ?)
 RETURNING
     id,
     tenant_id,
@@ -192,7 +192,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 }
 
 const deleteItem = `-- name: DeleteItem :exec
-DELETE FROM shopping_list_item
+DELETE FROM
+    shopping_list_item
 WHERE
     id = ?
 `
@@ -203,7 +204,8 @@ func (q *Queries) DeleteItem(ctx context.Context, id int64) error {
 }
 
 const deleteShoppingList = `-- name: DeleteShoppingList :exec
-DELETE FROM shopping_list
+DELETE FROM
+    shopping_list
 WHERE
     id = ?
     AND tenant_id = ?
@@ -220,13 +222,26 @@ func (q *Queries) DeleteShoppingList(ctx context.Context, arg DeleteShoppingList
 }
 
 const deleteSupermarket = `-- name: DeleteSupermarket :exec
-DELETE FROM supermarket
+DELETE FROM
+    supermarket
 WHERE
     id = ?
 `
 
 func (q *Queries) DeleteSupermarket(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteSupermarket, id)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM
+    user
+WHERE
+    id = ?
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
 	return err
 }
 
@@ -288,7 +303,8 @@ FROM
     supermarket
 WHERE
     id = ?
-LIMIT 1
+LIMIT
+    1
 `
 
 func (q *Queries) GetSupermarketByID(ctx context.Context, id int64) (Supermarket, error) {
@@ -304,7 +320,6 @@ func (q *Queries) GetSupermarketByID(ctx context.Context, id int64) (Supermarket
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-
 SELECT
     id,
     tenant_id,
@@ -316,12 +331,10 @@ FROM
     user
 WHERE
     email = ?
-LIMIT 1
+LIMIT
+    1
 `
 
-// ========================================================
-// 1. AUTH & RBAC (The Most Important Query for Permissions)
-// ========================================================
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
@@ -347,7 +360,8 @@ FROM
     user
 WHERE
     id = ?
-LIMIT 1
+LIMIT
+    1
 `
 
 type GetUserByIdRow struct {
@@ -376,10 +390,8 @@ SELECT
     p.code
 FROM
     user u
-JOIN role_permission rp
-    ON u.role_id = rp.role_id
-JOIN permission p
-    ON rp.permission_id = p.id
+    JOIN role_permission rp ON u.role_id = rp.role_id
+    JOIN permission p ON rp.permission_id = p.id
 WHERE
     u.id = ?
 `
@@ -409,7 +421,6 @@ func (q *Queries) GetUserPermissions(ctx context.Context, id int64) ([]string, e
 }
 
 const listItemsByListID = `-- name: ListItemsByListID :many
-
 SELECT
     id,
     shopping_list_id,
@@ -463,7 +474,6 @@ func (q *Queries) ListItemsByListID(ctx context.Context, shoppingListID int64) (
 }
 
 const listShoppingListsByTenant = `-- name: ListShoppingListsByTenant :many
-
 SELECT
     id,
     tenant_id,
@@ -509,7 +519,6 @@ func (q *Queries) ListShoppingListsByTenant(ctx context.Context, tenantID int64)
 }
 
 const listSupermarkets = `-- name: ListSupermarkets :many
-
 SELECT
     id,
     name,
@@ -552,8 +561,62 @@ func (q *Queries) ListSupermarkets(ctx context.Context) ([]Supermarket, error) {
 	return items, nil
 }
 
+const listUsers = `-- name: ListUsers :many
+SELECT
+    id,
+    tenant_id,
+    role_id,
+    name,
+    email
+FROM
+    user
+LIMIT
+    ?
+`
+
+type ListUsersRow struct {
+	ID       int64
+	TenantID int64
+	RoleID   int64
+	Name     string
+	Email    string
+}
+
+// ========================================================
+// 1. AUTH & RBAC (The Most Important Query for Permissions)
+// ========================================================
+func (q *Queries) ListUsers(ctx context.Context, limit int64) ([]ListUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUsersRow
+	for rows.Next() {
+		var i ListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TenantID,
+			&i.RoleID,
+			&i.Name,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const toggleItem = `-- name: ToggleItem :exec
-UPDATE shopping_list_item
+UPDATE
+    shopping_list_item
 SET
     ticked = ?
 WHERE
@@ -571,7 +634,8 @@ func (q *Queries) ToggleItem(ctx context.Context, arg ToggleItemParams) error {
 }
 
 const updateSupermarket = `-- name: UpdateSupermarket :one
-UPDATE supermarket
+UPDATE
+    supermarket
 SET
     name = ?,
     latitude = ?,
@@ -607,4 +671,73 @@ func (q *Queries) UpdateSupermarket(ctx context.Context, arg UpdateSupermarketPa
 		&i.Longitude,
 	)
 	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE
+    user
+SET
+    name = ?,
+    email = ?,
+    role_id = ?
+WHERE
+    id = ?
+RETURNING
+    id,
+    tenant_id,
+    role_id,
+    name,
+    email
+`
+
+type UpdateUserParams struct {
+	Name   string
+	Email  string
+	RoleID int64
+	ID     int64
+}
+
+type UpdateUserRow struct {
+	ID       int64
+	TenantID int64
+	RoleID   int64
+	Name     string
+	Email    string
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.Name,
+		arg.Email,
+		arg.RoleID,
+		arg.ID,
+	)
+	var i UpdateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.TenantID,
+		&i.RoleID,
+		&i.Name,
+		&i.Email,
+	)
+	return i, err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE
+    user
+SET
+    password_hash = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserPasswordParams struct {
+	PasswordHash sql.NullString
+	ID           int64
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
+	return err
 }
