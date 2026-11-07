@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -69,9 +72,24 @@ func main() {
 			r.With(server.RequirePermission("users:delete")).Delete("/{userID}", server.DeleteUserHandler)
 		})
 	})
-
-	log.Println("Server listening on http://localhost:8080...")
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatalf("server error: %v", err)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+	log.Printf("Server listening on http://localhost:%s...", srv.Addr)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+	<-ctx.Done()
+	// Create shutdown context with 30-second timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	// Trigger graceful shutdown
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatal(err)
 	}
 }
