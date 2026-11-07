@@ -238,3 +238,63 @@ func TestDeleteUserHandler(t *testing.T) {
 		}
 	})
 }
+
+func TestChiRouterIntegration(t *testing.T) {
+	apiInstance, _, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	router := apiInstance.Routes()
+
+	// 1. Unauthorized request without token should fail with 401
+	unauthReq := httptest.NewRequest(http.MethodGet, "/users", nil)
+	unauthRec := httptest.NewRecorder()
+	router.ServeHTTP(unauthRec, unauthReq)
+	if unauthRec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated request, got %d", unauthRec.Code)
+	}
+
+	// 2. Login as Alice Admin to get token
+	loginBody := []byte(`{"email":"alice@example.com","password":"password123"}`)
+	loginReq := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(loginBody))
+	loginRec := httptest.NewRecorder()
+	router.ServeHTTP(loginRec, loginReq)
+	if loginRec.Code != http.StatusOK {
+		t.Fatalf("login failed: %d: %s", loginRec.Code, loginRec.Body.String())
+	}
+
+	var loginResp map[string]string
+	if err := json.Unmarshal(loginRec.Body.Bytes(), &loginResp); err != nil {
+		t.Fatalf("failed to decode login response: %v", err)
+	}
+	token := loginResp["token"]
+	if token == "" {
+		t.Fatalf("expected non-empty token")
+	}
+
+	// 3. GET /me with token
+	meReq := httptest.NewRequest(http.MethodGet, "/me", nil)
+	meReq.Header.Set("Authorization", "Bearer "+token)
+	meRec := httptest.NewRecorder()
+	router.ServeHTTP(meRec, meReq)
+	if meRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /me, got %d: %s", meRec.Code, meRec.Body.String())
+	}
+
+	// 4. GET /users/2 through Chi URLParam parameter matching
+	userReq := httptest.NewRequest(http.MethodGet, "/users/2", nil)
+	userReq.Header.Set("Authorization", "Bearer "+token)
+	userRec := httptest.NewRecorder()
+	router.ServeHTTP(userRec, userReq)
+	if userRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /users/2, got %d: %s", userRec.Code, userRec.Body.String())
+	}
+
+	// 5. GET /lists with token
+	listsReq := httptest.NewRequest(http.MethodGet, "/lists", nil)
+	listsReq.Header.Set("Authorization", "Bearer "+token)
+	listsRec := httptest.NewRecorder()
+	router.ServeHTTP(listsRec, listsReq)
+	if listsRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /lists, got %d: %s", listsRec.Code, listsRec.Body.String())
+	}
+}

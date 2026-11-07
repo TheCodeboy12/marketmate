@@ -62,7 +62,7 @@ func (api *API) DeleteShoppingList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := r.PathValue("id")
+	idStr := pathParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid list ID")

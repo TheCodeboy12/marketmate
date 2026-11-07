@@ -3,6 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"rbac-testing/internal/api"
 	"rbac-testing/internal/auth"
@@ -31,47 +35,43 @@ func main() {
 	// 4. Instantiate API
 	server := api.New(queries, jwtSecret, authorizer)
 
-	// 5. Setup Routes with standard library net/http (Go 1.22+)
-	mux := http.NewServeMux()
+	// 5. Setup Routes with Chi Router
+	r := chi.NewRouter()
+
+	// Standard Chi Middlewares
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
 
 	// Public Routes
-	mux.HandleFunc("POST /login", server.LoginHandler)
+	r.Post("/login", server.LoginHandler)
 
-	// Protected Routes:
-	// GET /lists -> requires lists:read
-	mux.Handle("GET /lists", server.Authenticate(
-		server.RequirePermission("lists:read")(http.HandlerFunc(server.ListShoppingLists)),
-	))
+	// Protected Routes (requires valid JWT)
+	r.Group(func(r chi.Router) {
+		r.Use(server.Authenticate)
 
-	// POST /lists -> requires lists:create
-	mux.Handle("POST /lists", server.Authenticate(
-		server.RequirePermission("lists:create")(http.HandlerFunc(server.CreateShoppingList)),
-	))
-	mux.Handle("GET /me", server.Authenticate(http.HandlerFunc(server.MeHandler)))
-	// DELETE /lists/{id} -> requires lists:delete
-	mux.Handle("DELETE /lists/{id}", server.Authenticate(
-		server.RequirePermission("lists:delete")(http.HandlerFunc(server.DeleteShoppingList)),
-	))
+		r.Get("/me", server.MeHandler)
 
-	// User Routes
-	mux.Handle("GET /users", server.Authenticate(
-		server.RequirePermission("users:read")(http.HandlerFunc(server.ListUsersHandler)),
-	))
-	mux.Handle("GET /users/{userID}", server.Authenticate(
-		server.RequirePermission("users:read")(http.HandlerFunc(server.GetUserHandler)),
-	))
-	mux.Handle("POST /users", server.Authenticate(
-		server.RequirePermission("users:create")(http.HandlerFunc(server.CreateUserHandler)),
-	))
-	mux.Handle("PUT /users/{userID}", server.Authenticate(
-		server.RequirePermission("users:modify")(http.HandlerFunc(server.UpdateUserHandler)),
-	))
-	mux.Handle("DELETE /users/{userID}", server.Authenticate(
-		server.RequirePermission("users:delete")(http.HandlerFunc(server.DeleteUserHandler)),
-	))
+		// Shopping Lists
+		r.Route("/lists", func(r chi.Router) {
+			r.With(server.RequirePermission("lists:read")).Get("/", server.ListShoppingLists)
+			r.With(server.RequirePermission("lists:create")).Post("/", server.CreateShoppingList)
+			r.With(server.RequirePermission("lists:delete")).Delete("/{id}", server.DeleteShoppingList)
+		})
+
+		// Users
+		r.Route("/users", func(r chi.Router) {
+			r.With(server.RequirePermission("users:read")).Get("/", server.ListUsersHandler)
+			r.With(server.RequirePermission("users:read")).Get("/{userID}", server.GetUserHandler)
+			r.With(server.RequirePermission("users:create")).Post("/", server.CreateUserHandler)
+			r.With(server.RequirePermission("users:modify")).Put("/{userID}", server.UpdateUserHandler)
+			r.With(server.RequirePermission("users:delete")).Delete("/{userID}", server.DeleteUserHandler)
+		})
+	})
 
 	log.Println("Server listening on http://localhost:8080...")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }

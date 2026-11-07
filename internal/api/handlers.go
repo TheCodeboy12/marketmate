@@ -28,7 +28,7 @@ func (api *API) MeHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetUserHandler fetches a single user by ID
 func (api *API) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("userID")
+	userID := pathParam(r, "userID")
 	uID, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil || uID <= 0 {
 		writeError(w, http.StatusBadRequest, "Invalid user ID provided")
@@ -142,7 +142,7 @@ type UpdateUserRequest struct {
 
 // UpdateUserHandler handles updating an existing user's details and/or password
 func (api *API) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("userID")
+	userID := pathParam(r, "userID")
 	uID, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil || uID <= 0 {
 		writeError(w, http.StatusBadRequest, "Invalid user ID provided")
@@ -216,7 +216,7 @@ func (api *API) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 // DeleteUserHandler handles deleting an existing user
 func (api *API) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.PathValue("userID")
+	userID := pathParam(r, "userID")
 	uID, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil || uID <= 0 {
 		writeError(w, http.StatusBadRequest, "Invalid user ID provided")

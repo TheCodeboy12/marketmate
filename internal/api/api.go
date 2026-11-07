@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"rbac-testing/internal/auth"
 	"rbac-testing/internal/store"
 )
@@ -107,4 +109,45 @@ func (api *API) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"token": jwtToken})
+}
+
+// pathParam retrieves a path parameter, supporting chi.URLParam as well as http.Request.PathValue.
+func pathParam(r *http.Request, key string) string {
+	if val := chi.URLParam(r, key); val != "" {
+		return val
+	}
+	return r.PathValue(key)
+}
+
+// Routes builds and returns a chi.Router with all configured application endpoints.
+func (api *API) Routes() chi.Router {
+	r := chi.NewRouter()
+
+	// Public Routes
+	r.Post("/login", api.LoginHandler)
+
+	// Protected Routes
+	r.Group(func(r chi.Router) {
+		r.Use(api.Authenticate)
+
+		r.Get("/me", api.MeHandler)
+
+		// Shopping Lists
+		r.Route("/lists", func(r chi.Router) {
+			r.With(api.RequirePermission("lists:read")).Get("/", api.ListShoppingLists)
+			r.With(api.RequirePermission("lists:create")).Post("/", api.CreateShoppingList)
+			r.With(api.RequirePermission("lists:delete")).Delete("/{id}", api.DeleteShoppingList)
+		})
+
+		// Users
+		r.Route("/users", func(r chi.Router) {
+			r.With(api.RequirePermission("users:read")).Get("/", api.ListUsersHandler)
+			r.With(api.RequirePermission("users:read")).Get("/{userID}", api.GetUserHandler)
+			r.With(api.RequirePermission("users:create")).Post("/", api.CreateUserHandler)
+			r.With(api.RequirePermission("users:modify")).Put("/{userID}", api.UpdateUserHandler)
+			r.With(api.RequirePermission("users:delete")).Delete("/{userID}", api.DeleteUserHandler)
+		})
+	})
+
+	return r
 }
