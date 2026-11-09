@@ -158,6 +158,7 @@ func (api *API) Routes() chi.Router {
 			r.With(api.RequirePermission("users:read")).Get("/{userID}", api.GetUserHandler)
 			r.With(api.RequirePermission("users:create")).Post("/", api.CreateUserHandler)
 			r.With(api.RequirePermission("users:modify")).Put("/{userID}", api.UpdateUserHandler)
+			r.With(api.RequirePermission("users:modify")).Put("/{userID}/password", api.UpdateUserPasswordHandler)
 			r.With(api.RequirePermission("users:delete")).Delete("/{userID}", api.DeleteUserHandler)
 		})
 	})

@@ -82,6 +82,7 @@ func main() {
 			r.With(server.RequirePermission("users:read")).Get("/{userID}", server.GetUserHandler)
 			r.With(server.RequirePermission("users:create")).Post("/", server.CreateUserHandler)
 			r.With(server.RequirePermission("users:modify")).Put("/{userID}", server.UpdateUserHandler)
+			r.With(server.RequirePermission("users:modify")).Put("/{userID}/password", server.UpdateUserPasswordHandler)
 			r.With(server.RequirePermission("users:delete")).Delete("/{userID}", server.DeleteUserHandler)
 		})
 	})

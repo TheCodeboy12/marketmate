@@ -151,13 +151,12 @@ func (api *API) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type UpdateUserRequest struct {
-	Name     *string `json:"name"`
-	Email    *string `json:"email"`
-	RoleID   *int64  `json:"role_id"`
-	Password *string `json:"password"`
+	Name   *string `json:"name"`
+	Email  *string `json:"email"`
+	RoleID *int64  `json:"role_id"`
 }
 
-// UpdateUserHandler handles updating an existing user's details and/or password within tenant
+// UpdateUserHandler handles updating an existing user's details within tenant
 func (api *API) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	caller, ok := UserFromContext(r.Context())
 	if !ok {
@@ -214,26 +213,67 @@ func (api *API) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Password != nil && *req.Password != "" {
-		hashed, err := auth.HashPassword(*req.Password)
-		if err != nil {
-			logger.Printf("failed to hash password for user %d: %v", uID, err)
-			writeError(w, http.StatusInternalServerError, "Failed to process password")
-			return
-		}
+	writeJSON(w, http.StatusOK, updated)
+}
 
-		if err := api.store.UpdateUserPassword(r.Context(), store.UpdateUserPasswordParams{
-			ID:           uID,
-			TenantID:     caller.TenantID,
-			PasswordHash: sql.NullString{String: hashed, Valid: true},
-		}); err != nil {
-			logger.Printf("failed to update password for user %d: %v", uID, err)
-			writeError(w, http.StatusInternalServerError, "Failed to update password")
-			return
-		}
+type UpdateUserPasswordRequest struct {
+	Password string `json:"password"`
+}
+
+// UpdateUserPasswordHandler handles updating an existing user's password within caller's tenant
+func (api *API) UpdateUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	caller, ok := UserFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
-	writeJSON(w, http.StatusOK, updated)
+	userID := pathParam(r, "userID")
+	uID, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil || uID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid user ID provided")
+		return
+	}
+
+	// Verify target user exists within caller's tenant
+	_, err = api.store.GetUserById(r.Context(), store.GetUserByIdParams{
+		ID:       uID,
+		TenantID: caller.TenantID,
+	})
+	if err != nil {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("Unable to find user %s", userID))
+		return
+	}
+
+	var req UpdateUserPasswordRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.Password == "" {
+		writeError(w, http.StatusBadRequest, "Password cannot be empty")
+		return
+	}
+
+	hashed, err := auth.HashPassword(req.Password)
+	if err != nil {
+		logger.Printf("failed to hash password for user %d: %v", uID, err)
+		writeError(w, http.StatusInternalServerError, "Failed to process password")
+		return
+	}
+
+	if err := api.store.UpdateUserPassword(r.Context(), store.UpdateUserPasswordParams{
+		ID:           uID,
+		TenantID:     caller.TenantID,
+		PasswordHash: sql.NullString{String: hashed, Valid: true},
+	}); err != nil {
+		logger.Printf("failed to update password for user %d: %v", uID, err)
+		writeError(w, http.StatusInternalServerError, "Failed to update password")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Password updated successfully"})
 }
 
 // DeleteUserHandler handles deleting an existing user within caller's tenant

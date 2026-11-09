@@ -166,14 +166,13 @@ func TestCreateUserHandler(t *testing.T) {
 }
 
 func TestUpdateUserHandler(t *testing.T) {
-	apiInstance, queries, cleanup := setupTestAPI(t)
+	apiInstance, _, cleanup := setupTestAPI(t)
 	defer cleanup()
 
 	// Update user 3 (Bob)
 	body := []byte(`{
 		"name": "Bobby Updated",
-		"email": "bob.updated@example.com",
-		"password": "newpassword456"
+		"email": "bob.updated@example.com"
 	}`)
 
 	req := httptest.NewRequest(http.MethodPut, "/users/3", bytes.NewReader(body))
@@ -195,9 +194,30 @@ func TestUpdateUserHandler(t *testing.T) {
 	if updated.Name != "Bobby Updated" || updated.Email != "bob.updated@example.com" {
 		t.Fatalf("unexpected updated fields: %+v", updated)
 	}
+}
+
+func TestUpdateUserPasswordHandler(t *testing.T) {
+	apiInstance, queries, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	// Update password for user 3 (Bob)
+	body := []byte(`{
+		"password": "newpassword456"
+	}`)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/3/password", bytes.NewReader(body))
+	req.SetPathValue("userID", "3")
+	req = req.WithContext(contextWithUser(req.Context(), 2, 1)) // caller is Alice (tenant 1)
+	rec := httptest.NewRecorder()
+
+	apiInstance.UpdateUserPasswordHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
 
 	// Verify updated password hash works
-	u, err := queries.GetUserByEmail(context.Background(), "bob.updated@example.com")
+	u, err := queries.GetUserByEmail(context.Background(), "bob@example.com")
 	if err != nil {
 		t.Fatalf("failed to get user: %v", err)
 	}
