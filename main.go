@@ -11,10 +11,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"rbac-testing/internal/api"
-	"rbac-testing/internal/auth"
-	"rbac-testing/internal/db"
-	"rbac-testing/internal/store"
+	"github.com/TheCodeboy12/marketmate/internal/api"
+	"github.com/TheCodeboy12/marketmate/internal/auth"
+	"github.com/TheCodeboy12/marketmate/internal/db"
+	"github.com/TheCodeboy12/marketmate/internal/store"
 )
 
 func main() {

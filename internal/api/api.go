@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"rbac-testing/internal/auth"
-	"rbac-testing/internal/store"
+	"github.com/TheCodeboy12/marketmate/internal/auth"
+	"github.com/TheCodeboy12/marketmate/internal/store"
 )
 
 var logger = log.Default()

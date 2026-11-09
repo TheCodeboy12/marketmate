@@ -1,4 +1,4 @@
-module rbac-testing
+module github.com/TheCodeboy12/marketmate
 
 go 1.27.1
 

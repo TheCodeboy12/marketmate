@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"rbac-testing/internal/auth"
+	"github.com/TheCodeboy12/marketmate/internal/auth"
 )
 
 func TestGenerateToken(t *testing.T) {

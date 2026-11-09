@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"rbac-testing/internal/store"
+	"github.com/TheCodeboy12/marketmate/internal/store"
 )
 
 type CreateSupermarketRequest struct {

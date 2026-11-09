@@ -3,7 +3,7 @@ package auth_test
 import (
 	"testing"
 
-	"rbac-testing/internal/auth"
+	"github.com/TheCodeboy12/marketmate/internal/auth"
 )
 
 func TestPasswordHash(t *testing.T) {

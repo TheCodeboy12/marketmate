@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"rbac-testing/internal/db"
+	"github.com/TheCodeboy12/marketmate/internal/db"
 )
 
 func TestInitDB(t *testing.T) {

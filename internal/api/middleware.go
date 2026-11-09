@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"rbac-testing/internal/auth"
+	"github.com/TheCodeboy12/marketmate/internal/auth"
 )
 
 type contextKey string

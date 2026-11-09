@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"rbac-testing/internal/auth"
-	"rbac-testing/internal/store"
+	"github.com/TheCodeboy12/marketmate/internal/auth"
+	"github.com/TheCodeboy12/marketmate/internal/store"
 )
 
 func (api *API) MeHandler(w http.ResponseWriter, r *http.Request) {

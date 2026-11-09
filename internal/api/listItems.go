@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"rbac-testing/internal/store"
+	"github.com/TheCodeboy12/marketmate/internal/store"
 )
 
 // ListItemsHandler lists all items in a shopping list belonging to caller's tenant
