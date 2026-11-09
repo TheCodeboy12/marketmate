@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	_ "embed"
 
-	db_internal "rbac-testing/db"
+	db_internal "github.com/TheCodeboy12/marketmate/db"
 
 	_ "modernc.org/sqlite" // <--- registers "sqlite"
 )
