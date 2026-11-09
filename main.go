@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -18,8 +19,15 @@ import (
 )
 
 func main() {
-	jwtSecret := []byte("super-secret-key-1234567890")
-	dbPath := "app.db?_pragma=foreign_keys(1)"
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatalln("JWT_SECRET env var was not set.")
+	}
+
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		log.Fatalln("db_path env var was not set.")
+	}
 
 	// 1. Initialize SQLite Database (creates app.db and executes schema + seeds)
 	sqlDB, err := db.InitDB(dbPath)
@@ -36,7 +44,7 @@ func main() {
 	authorizer := auth.NewAuthorizer(queries)
 
 	// 4. Instantiate API
-	server := api.New(queries, jwtSecret, authorizer)
+	server := api.New(queries, []byte(jwtSecret), authorizer)
 
 	// 5. Setup Routes with Chi Router
 	r := chi.NewRouter()
