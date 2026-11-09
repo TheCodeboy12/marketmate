@@ -74,17 +74,12 @@ func (api *API) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var category sql.NullString
-	if data.Category != nil {
-		category = sql.NullString{String: *data.Category, Valid: true}
-	}
-
-	var supermarketID sql.NullInt64
+	var supermarketID *int64
 	if data.PrefferdSupermarketID != nil && *data.PrefferdSupermarketID > 0 {
-		supermarketID = sql.NullInt64{Int64: *data.PrefferdSupermarketID, Valid: true}
+		supermarketID = data.PrefferdSupermarketID
 		// Verify supermarket belongs to caller's tenant
 		_, err := api.store.GetSupermarketByID(r.Context(), store.GetSupermarketByIDParams{
-			ID:       supermarketID.Int64,
+			ID:       *supermarketID,
 			TenantID: caller.TenantID,
 		})
 		if err != nil {
@@ -99,7 +94,7 @@ func (api *API) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 		Name:                  data.Name,
 		AmountToBuy:           data.AmountToBuy,
 		CreatedBy:             caller.UserID,
-		Category:              category,
+		Category:              data.Category,
 		PrefferdSupermarketID: supermarketID,
 	})
 	if err != nil {
@@ -188,17 +183,12 @@ func (api *API) UpdateListItemHandler(w http.ResponseWriter, r *http.Request) {
 		amount = *data.AmountToBuy
 	}
 
-	var category sql.NullString
-	if data.Category != nil {
-		category = sql.NullString{String: *data.Category, Valid: true}
-	}
-
-	var supermarketID sql.NullInt64
+	var supermarketID *int64
 	if data.PrefferdSupermarketID != nil && *data.PrefferdSupermarketID > 0 {
-		supermarketID = sql.NullInt64{Int64: *data.PrefferdSupermarketID, Valid: true}
+		supermarketID = data.PrefferdSupermarketID
 		// Verify supermarket belongs to caller's tenant
 		_, err := api.store.GetSupermarketByID(r.Context(), store.GetSupermarketByIDParams{
-			ID:       supermarketID.Int64,
+			ID:       *supermarketID,
 			TenantID: caller.TenantID,
 		})
 		if err != nil {
@@ -212,7 +202,7 @@ func (api *API) UpdateListItemHandler(w http.ResponseWriter, r *http.Request) {
 		TenantID:              caller.TenantID,
 		Name:                  name,
 		AmountToBuy:           amount,
-		Category:              category,
+		Category:              data.Category,
 		PrefferdSupermarketID: supermarketID,
 	})
 	if err != nil {

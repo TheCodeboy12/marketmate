@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -139,7 +138,7 @@ func (api *API) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		RoleID:       req.RoleID,
 		Name:         req.Name,
 		Email:        req.Email,
-		PasswordHash: sql.NullString{String: hashedPassword, Valid: true},
+		PasswordHash: &hashedPassword,
 	})
 	if err != nil {
 		logger.Printf("failed to create user: %v", err)
@@ -266,7 +265,7 @@ func (api *API) UpdateUserPasswordHandler(w http.ResponseWriter, r *http.Request
 	if err := api.store.UpdateUserPassword(r.Context(), store.UpdateUserPasswordParams{
 		ID:           uID,
 		TenantID:     caller.TenantID,
-		PasswordHash: sql.NullString{String: hashed, Valid: true},
+		PasswordHash: &hashed,
 	}); err != nil {
 		logger.Printf("failed to update password for user %d: %v", uID, err)
 		writeError(w, http.StatusInternalServerError, "Failed to update password")

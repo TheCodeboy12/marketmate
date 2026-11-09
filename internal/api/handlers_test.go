@@ -160,7 +160,7 @@ func TestCreateUserHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to query new user by email: %v", err)
 	}
-	if !auth.CheckPassword(u.PasswordHash.String, "mypassword123") {
+	if u.PasswordHash == nil || !auth.CheckPassword(*u.PasswordHash, "mypassword123") {
 		t.Fatalf("password hash verification failed")
 	}
 }
@@ -221,7 +221,7 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get user: %v", err)
 	}
-	if !auth.CheckPassword(u.PasswordHash.String, "newpassword456") {
+	if u.PasswordHash == nil || !auth.CheckPassword(*u.PasswordHash, "newpassword456") {
 		t.Fatalf("password was not updated correctly")
 	}
 }

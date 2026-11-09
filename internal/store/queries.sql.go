@@ -7,7 +7,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createItem = `-- name: CreateItem :one
@@ -44,13 +43,13 @@ RETURNING
 `
 
 type CreateItemParams struct {
-	ID                    int64
-	TenantID              int64
-	Name                  string
-	AmountToBuy           int64
-	CreatedBy             int64
-	Category              sql.NullString
-	PrefferdSupermarketID sql.NullInt64
+	ID                    int64   `json:"id"`
+	TenantID              int64   `json:"tenant_id"`
+	Name                  string  `json:"name"`
+	AmountToBuy           int64   `json:"amount_to_buy"`
+	CreatedBy             int64   `json:"created_by"`
+	Category              *string `json:"category"`
+	PrefferdSupermarketID *int64  `json:"prefferd_supermarket_id"`
 }
 
 func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (ShoppingListItem, error) {
@@ -90,9 +89,9 @@ RETURNING
 `
 
 type CreateShoppingListParams struct {
-	TenantID  int64
-	Name      string
-	CreatedBy int64
+	TenantID  int64  `json:"tenant_id"`
+	Name      string `json:"name"`
+	CreatedBy int64  `json:"created_by"`
 }
 
 func (q *Queries) CreateShoppingList(ctx context.Context, arg CreateShoppingListParams) (ShoppingList, error) {
@@ -121,10 +120,10 @@ RETURNING
 `
 
 type CreateSupermarketParams struct {
-	TenantID  int64
-	Name      string
-	Latitude  float64
-	Longitude float64
+	TenantID  int64   `json:"tenant_id"`
+	Name      string  `json:"name"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 func (q *Queries) CreateSupermarket(ctx context.Context, arg CreateSupermarketParams) (Supermarket, error) {
@@ -165,19 +164,19 @@ RETURNING
 `
 
 type CreateUserParams struct {
-	TenantID     int64
-	RoleID       int64
-	Name         string
-	Email        string
-	PasswordHash sql.NullString
+	TenantID     int64   `json:"tenant_id"`
+	RoleID       int64   `json:"role_id"`
+	Name         string  `json:"name"`
+	Email        string  `json:"email"`
+	PasswordHash *string `json:"password_hash"`
 }
 
 type CreateUserRow struct {
-	ID       int64
-	TenantID int64
-	RoleID   int64
-	Name     string
-	Email    string
+	ID       int64  `json:"id"`
+	TenantID int64  `json:"tenant_id"`
+	RoleID   int64  `json:"role_id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -216,8 +215,8 @@ WHERE
 `
 
 type DeleteItemParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
@@ -234,8 +233,8 @@ WHERE
 `
 
 type DeleteShoppingListParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) DeleteShoppingList(ctx context.Context, arg DeleteShoppingListParams) error {
@@ -252,8 +251,8 @@ WHERE
 `
 
 type DeleteSupermarketParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) DeleteSupermarket(ctx context.Context, arg DeleteSupermarketParams) error {
@@ -270,8 +269,8 @@ WHERE
 `
 
 type DeleteUserParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
@@ -293,8 +292,8 @@ WHERE
 `
 
 type GetRoleByIDParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) GetRoleByID(ctx context.Context, arg GetRoleByIDParams) (Role, error) {
@@ -323,8 +322,8 @@ WHERE
 `
 
 type GetShoppingListByIDParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) GetShoppingListByID(ctx context.Context, arg GetShoppingListByIDParams) (ShoppingList, error) {
@@ -356,8 +355,8 @@ LIMIT
 `
 
 type GetSupermarketByIDParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) GetSupermarketByID(ctx context.Context, arg GetSupermarketByIDParams) (Supermarket, error) {
@@ -420,16 +419,16 @@ LIMIT
 `
 
 type GetUserByIdParams struct {
-	ID       int64
-	TenantID int64
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 type GetUserByIdRow struct {
-	ID       int64
-	TenantID int64
-	RoleID   int64
-	Name     string
-	Email    string
+	ID       int64  `json:"id"`
+	TenantID int64  `json:"tenant_id"`
+	RoleID   int64  `json:"role_id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 }
 
 func (q *Queries) GetUserById(ctx context.Context, arg GetUserByIdParams) (GetUserByIdRow, error) {
@@ -501,8 +500,8 @@ ORDER BY
 `
 
 type ListItemsByListIDParams struct {
-	ShoppingListID int64
-	TenantID       int64
+	ShoppingListID int64 `json:"shopping_list_id"`
+	TenantID       int64 `json:"tenant_id"`
 }
 
 // ========================================================
@@ -646,8 +645,8 @@ LIMIT
 `
 
 type ListUsersParams struct {
-	TenantID int64
-	Limit    int64
+	TenantID int64 `json:"tenant_id"`
+	Limit    int64 `json:"limit"`
 }
 
 // ========================================================
@@ -701,9 +700,9 @@ WHERE
 `
 
 type ToggleItemParams struct {
-	Ticked   bool
-	ID       int64
-	TenantID int64
+	Ticked   bool  `json:"ticked"`
+	ID       int64 `json:"id"`
+	TenantID int64 `json:"tenant_id"`
 }
 
 func (q *Queries) ToggleItem(ctx context.Context, arg ToggleItemParams) error {
@@ -735,12 +734,12 @@ RETURNING
 `
 
 type UpdateListItemParams struct {
-	Name                  string
-	AmountToBuy           int64
-	Category              sql.NullString
-	PrefferdSupermarketID sql.NullInt64
-	ID                    int64
-	TenantID              int64
+	Name                  string  `json:"name"`
+	AmountToBuy           int64   `json:"amount_to_buy"`
+	Category              *string `json:"category"`
+	PrefferdSupermarketID *int64  `json:"prefferd_supermarket_id"`
+	ID                    int64   `json:"id"`
+	TenantID              int64   `json:"tenant_id"`
 }
 
 func (q *Queries) UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ShoppingListItem, error) {
@@ -785,11 +784,11 @@ RETURNING
 `
 
 type UpdateSupermarketParams struct {
-	Name      string
-	Latitude  float64
-	Longitude float64
-	ID        int64
-	TenantID  int64
+	Name      string  `json:"name"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	ID        int64   `json:"id"`
+	TenantID  int64   `json:"tenant_id"`
 }
 
 func (q *Queries) UpdateSupermarket(ctx context.Context, arg UpdateSupermarketParams) (Supermarket, error) {
@@ -830,19 +829,19 @@ RETURNING
 `
 
 type UpdateUserParams struct {
-	Name     string
-	Email    string
-	RoleID   int64
-	ID       int64
-	TenantID int64
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	RoleID   int64  `json:"role_id"`
+	ID       int64  `json:"id"`
+	TenantID int64  `json:"tenant_id"`
 }
 
 type UpdateUserRow struct {
-	ID       int64
-	TenantID int64
-	RoleID   int64
-	Name     string
-	Email    string
+	ID       int64  `json:"id"`
+	TenantID int64  `json:"tenant_id"`
+	RoleID   int64  `json:"role_id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
@@ -875,9 +874,9 @@ WHERE
 `
 
 type UpdateUserPasswordParams struct {
-	PasswordHash sql.NullString
-	ID           int64
-	TenantID     int64
+	PasswordHash *string `json:"password_hash"`
+	ID           int64   `json:"id"`
+	TenantID     int64   `json:"tenant_id"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {

@@ -92,7 +92,7 @@ func (api *API) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Fetch user by email and verify password
 	u, err := api.store.GetUserByEmail(r.Context(), data.Email)
-	if err != nil || !auth.CheckPassword(u.PasswordHash.String, data.Password) {
+	if err != nil || u.PasswordHash == nil || !auth.CheckPassword(*u.PasswordHash, data.Password) {
 		writeError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}

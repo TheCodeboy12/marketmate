@@ -4,73 +4,69 @@
 
 package store
 
-import (
-	"database/sql"
-)
-
 type Permission struct {
-	ID          int64
-	Code        string
-	Description sql.NullString
+	ID          int64   `json:"id"`
+	Code        string  `json:"code"`
+	Description *string `json:"description"`
 }
 
 type Role struct {
-	ID        int64
-	Name      string
-	TenantID  int64
-	CreatedBy sql.NullInt64
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	TenantID  int64  `json:"tenant_id"`
+	CreatedBy *int64 `json:"created_by"`
 }
 
 type RolePermission struct {
-	RoleID       int64
-	PermissionID int64
+	RoleID       int64 `json:"role_id"`
+	PermissionID int64 `json:"permission_id"`
 }
 
 type ShoppingList struct {
-	ID        int64
-	TenantID  int64
-	Name      string
-	CreatedBy int64
+	ID        int64  `json:"id"`
+	TenantID  int64  `json:"tenant_id"`
+	Name      string `json:"name"`
+	CreatedBy int64  `json:"created_by"`
 }
 
 type ShoppingListItem struct {
-	ID                    int64
-	ShoppingListID        int64
-	Name                  string
-	AmountToBuy           int64
-	Category              sql.NullString
-	CreatedBy             int64
-	Ticked                bool
-	PrefferdSupermarketID sql.NullInt64
+	ID                    int64   `json:"id"`
+	ShoppingListID        int64   `json:"shopping_list_id"`
+	Name                  string  `json:"name"`
+	AmountToBuy           int64   `json:"amount_to_buy"`
+	Category              *string `json:"category"`
+	CreatedBy             int64   `json:"created_by"`
+	Ticked                bool    `json:"ticked"`
+	PrefferdSupermarketID *int64  `json:"prefferd_supermarket_id"`
 }
 
 type Supermarket struct {
-	ID        int64
-	Name      string
-	TenantID  int64
-	Latitude  float64
-	Longitude float64
+	ID        int64   `json:"id"`
+	Name      string  `json:"name"`
+	TenantID  int64   `json:"tenant_id"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 type Tenant struct {
-	ID     int64
-	Name   string
-	Domain string
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
 }
 
 type User struct {
-	ID           int64
-	TenantID     int64
-	RoleID       int64
-	Name         string
-	Email        string
-	PasswordHash sql.NullString
+	ID           int64   `json:"id"`
+	TenantID     int64   `json:"tenant_id"`
+	RoleID       int64   `json:"role_id"`
+	Name         string  `json:"name"`
+	Email        string  `json:"email"`
+	PasswordHash *string `json:"password_hash"`
 }
 
 type UserPublic struct {
-	ID       int64
-	TenantID int64
-	RoleID   int64
-	Name     string
-	Email    string
+	ID       int64  `json:"id"`
+	TenantID int64  `json:"tenant_id"`
+	RoleID   int64  `json:"role_id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 }

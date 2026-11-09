@@ -7,8 +7,8 @@ generate: sqlc
 
 export JWT_SECRET ?= supersecretpassword
 export DB_PATH ?= app.db?_pragma=foreign_keys(1)
-.PHONY: dev
-devrun:
+.PHONY: devrun devclean
+devrun: sqlc
 	go run .
 devclean:
 	rm -f app.db
