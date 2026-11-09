@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -105,5 +106,29 @@ func TestItemHandlersTenantSafety(t *testing.T) {
 	})
 	if err != nil || len(checkItems) == 0 {
 		t.Fatalf("expected item 1 to remain undeleted after cross-tenant delete attempt")
+	}
+
+	// 7. Preferred supermarket cross-tenant validation:
+	// Create a supermarket belonging to Tenant 2
+	smT2, err := queries.CreateSupermarket(context.Background(), store.CreateSupermarketParams{
+		TenantID:  2,
+		Name:      "Tenant 2 Supermarket",
+		Latitude:  12.34,
+		Longitude: 56.78,
+	})
+	if err != nil {
+		t.Fatalf("failed to create supermarket for tenant 2: %v", err)
+	}
+
+	// Tenant 1 attempts to add item referencing Tenant 2's supermarket -> MUST BE REJECTED
+	badItemBody := []byte(`{"name":"Bananas","amount_to_buy":2,"prefferd_supermarket_id":` + fmt.Sprintf("%d", smT2.ID) + `}`)
+	badItemReq := httptest.NewRequest(http.MethodPost, "/lists/1/items", bytes.NewReader(badItemBody))
+	badItemReq.SetPathValue("listID", "1")
+	badItemReq = badItemReq.WithContext(contextWithUser(badItemReq.Context(), 2, 1))
+	badItemRec := httptest.NewRecorder()
+
+	apiInstance.CreateItemHandler(badItemRec, badItemReq)
+	if badItemRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for cross-tenant preferred supermarket assignment, got %d", badItemRec.Code)
 	}
 }

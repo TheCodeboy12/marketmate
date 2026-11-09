@@ -15,11 +15,11 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	DeleteItem(ctx context.Context, arg DeleteItemParams) error
 	DeleteShoppingList(ctx context.Context, arg DeleteShoppingListParams) error
-	DeleteSupermarket(ctx context.Context, id int64) error
+	DeleteSupermarket(ctx context.Context, arg DeleteSupermarketParams) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
 	GetRoleByID(ctx context.Context, arg GetRoleByIDParams) (Role, error)
 	GetShoppingListByID(ctx context.Context, arg GetShoppingListByIDParams) (ShoppingList, error)
-	GetSupermarketByID(ctx context.Context, id int64) (Supermarket, error)
+	GetSupermarketByID(ctx context.Context, arg GetSupermarketByIDParams) (Supermarket, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserById(ctx context.Context, arg GetUserByIdParams) (GetUserByIdRow, error)
 	// Resolves: User -> Role -> Permission Codes in ONE query!
@@ -35,7 +35,7 @@ type Querier interface {
 	// ========================================================
 	// 4. SUPERMARKETS
 	// ========================================================
-	ListSupermarkets(ctx context.Context) ([]Supermarket, error)
+	ListSupermarkets(ctx context.Context, tenantID int64) ([]Supermarket, error)
 	// ========================================================
 	// 1. AUTH & RBAC (The Most Important Query for Permissions)
 	// ========================================================

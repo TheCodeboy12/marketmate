@@ -2,7 +2,8 @@
 INSERT
     OR IGNORE INTO "tenant" ("id", "name", "domain")
 VALUES
-    (1, 'Main Tenant', 'main_tenant.com');
+    (1, 'Main Tenant', 'main_tenant.com'),
+    (2, 'Second Tenant', 'second_tenant.com');
 
 -- 2. Seeded System Roles
 INSERT

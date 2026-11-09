@@ -76,6 +76,15 @@ func main() {
 			r.With(server.RequirePermission("items:delete")).Delete("/{id}", server.DeleteItemHandler)
 		})
 
+		// Supermarkets
+		r.Route("/supermarkets", func(r chi.Router) {
+			r.With(server.RequirePermission("lists:read")).Get("/", server.ListSupermarketsHandler)
+			r.With(server.RequirePermission("lists:read")).Get("/{id}", server.GetSupermarketHandler)
+			r.With(server.RequirePermission("items:create")).Post("/", server.CreateSupermarketHandler)
+			r.With(server.RequirePermission("items:create")).Put("/{id}", server.UpdateSupermarketHandler)
+			r.With(server.RequirePermission("lists:delete")).Delete("/{id}", server.DeleteSupermarketHandler)
+		})
+
 		// Users
 		r.Route("/users", func(r chi.Router) {
 			r.With(server.RequirePermission("users:read")).Get("/", server.ListUsersHandler)

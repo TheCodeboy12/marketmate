@@ -278,10 +278,13 @@ WHERE
 SELECT
     id,
     name,
+    tenant_id,
     latitude,
     longitude
 FROM
     supermarket
+WHERE
+    tenant_id = ?
 ORDER BY
     name ASC;
 
@@ -289,23 +292,26 @@ ORDER BY
 SELECT
     id,
     name,
+    tenant_id,
     latitude,
     longitude
 FROM
     supermarket
 WHERE
     id = ?
+    AND tenant_id = ?
 LIMIT
     1;
 
 -- name: CreateSupermarket :one
 INSERT INTO
-    supermarket (name, latitude, longitude)
+    supermarket (tenant_id, name, latitude, longitude)
 VALUES
-    (?, ?, ?)
+    (?, ?, ?, ?)
 RETURNING
     id,
     name,
+    tenant_id,
     latitude,
     longitude;
 
@@ -313,14 +319,16 @@ RETURNING
 UPDATE
     supermarket
 SET
-    name = ?,
-    latitude = ?,
-    longitude = ?
+    name = coalesce(?, name),
+    latitude = coalesce(?, latitude),
+    longitude = coalesce(?, longitude)
 WHERE
     id = ?
+    AND tenant_id = ?
 RETURNING
     id,
     name,
+    tenant_id,
     latitude,
     longitude;
 
@@ -328,4 +336,5 @@ RETURNING
 DELETE FROM
     supermarket
 WHERE
-    id = ?;
+    id = ?
+    AND tenant_id = ?;

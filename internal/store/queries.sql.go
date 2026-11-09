@@ -109,28 +109,36 @@ func (q *Queries) CreateShoppingList(ctx context.Context, arg CreateShoppingList
 
 const createSupermarket = `-- name: CreateSupermarket :one
 INSERT INTO
-    supermarket (name, latitude, longitude)
+    supermarket (tenant_id, name, latitude, longitude)
 VALUES
-    (?, ?, ?)
+    (?, ?, ?, ?)
 RETURNING
     id,
     name,
+    tenant_id,
     latitude,
     longitude
 `
 
 type CreateSupermarketParams struct {
+	TenantID  int64
 	Name      string
 	Latitude  float64
 	Longitude float64
 }
 
 func (q *Queries) CreateSupermarket(ctx context.Context, arg CreateSupermarketParams) (Supermarket, error) {
-	row := q.db.QueryRowContext(ctx, createSupermarket, arg.Name, arg.Latitude, arg.Longitude)
+	row := q.db.QueryRowContext(ctx, createSupermarket,
+		arg.TenantID,
+		arg.Name,
+		arg.Latitude,
+		arg.Longitude,
+	)
 	var i Supermarket
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.TenantID,
 		&i.Latitude,
 		&i.Longitude,
 	)
@@ -240,10 +248,16 @@ DELETE FROM
     supermarket
 WHERE
     id = ?
+    AND tenant_id = ?
 `
 
-func (q *Queries) DeleteSupermarket(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteSupermarket, id)
+type DeleteSupermarketParams struct {
+	ID       int64
+	TenantID int64
+}
+
+func (q *Queries) DeleteSupermarket(ctx context.Context, arg DeleteSupermarketParams) error {
+	_, err := q.db.ExecContext(ctx, deleteSupermarket, arg.ID, arg.TenantID)
 	return err
 }
 
@@ -329,22 +343,30 @@ const getSupermarketByID = `-- name: GetSupermarketByID :one
 SELECT
     id,
     name,
+    tenant_id,
     latitude,
     longitude
 FROM
     supermarket
 WHERE
     id = ?
+    AND tenant_id = ?
 LIMIT
     1
 `
 
-func (q *Queries) GetSupermarketByID(ctx context.Context, id int64) (Supermarket, error) {
-	row := q.db.QueryRowContext(ctx, getSupermarketByID, id)
+type GetSupermarketByIDParams struct {
+	ID       int64
+	TenantID int64
+}
+
+func (q *Queries) GetSupermarketByID(ctx context.Context, arg GetSupermarketByIDParams) (Supermarket, error) {
+	row := q.db.QueryRowContext(ctx, getSupermarketByID, arg.ID, arg.TenantID)
 	var i Supermarket
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.TenantID,
 		&i.Latitude,
 		&i.Longitude,
 	)
@@ -567,10 +589,13 @@ const listSupermarkets = `-- name: ListSupermarkets :many
 SELECT
     id,
     name,
+    tenant_id,
     latitude,
     longitude
 FROM
     supermarket
+WHERE
+    tenant_id = ?
 ORDER BY
     name ASC
 `
@@ -578,8 +603,8 @@ ORDER BY
 // ========================================================
 // 4. SUPERMARKETS
 // ========================================================
-func (q *Queries) ListSupermarkets(ctx context.Context) ([]Supermarket, error) {
-	rows, err := q.db.QueryContext(ctx, listSupermarkets)
+func (q *Queries) ListSupermarkets(ctx context.Context, tenantID int64) ([]Supermarket, error) {
+	rows, err := q.db.QueryContext(ctx, listSupermarkets, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -590,6 +615,7 @@ func (q *Queries) ListSupermarkets(ctx context.Context) ([]Supermarket, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.TenantID,
 			&i.Latitude,
 			&i.Longitude,
 		); err != nil {
@@ -744,14 +770,16 @@ const updateSupermarket = `-- name: UpdateSupermarket :one
 UPDATE
     supermarket
 SET
-    name = ?,
-    latitude = ?,
-    longitude = ?
+    name = coalesce(?, name),
+    latitude = coalesce(?, latitude),
+    longitude = coalesce(?, longitude)
 WHERE
     id = ?
+    AND tenant_id = ?
 RETURNING
     id,
     name,
+    tenant_id,
     latitude,
     longitude
 `
@@ -761,6 +789,7 @@ type UpdateSupermarketParams struct {
 	Latitude  float64
 	Longitude float64
 	ID        int64
+	TenantID  int64
 }
 
 func (q *Queries) UpdateSupermarket(ctx context.Context, arg UpdateSupermarketParams) (Supermarket, error) {
@@ -769,11 +798,13 @@ func (q *Queries) UpdateSupermarket(ctx context.Context, arg UpdateSupermarketPa
 		arg.Latitude,
 		arg.Longitude,
 		arg.ID,
+		arg.TenantID,
 	)
 	var i Supermarket
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.TenantID,
 		&i.Latitude,
 		&i.Longitude,
 	)

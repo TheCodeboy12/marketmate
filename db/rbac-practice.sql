@@ -71,8 +71,10 @@ CREATE TABLE IF NOT EXISTS "shopping_list" (
 CREATE TABLE IF NOT EXISTS "supermarket" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" VARCHAR NOT NULL,
+    "tenant_id" INTEGER NOT NULL,
     "latitude" REAL NOT NULL CHECK (latitude BETWEEN -90.0 AND 90.0),
-    "longitude" REAL NOT NULL CHECK (longitude BETWEEN -180.0 AND 180.0)
+    "longitude" REAL NOT NULL CHECK (longitude BETWEEN -180.0 AND 180.0),
+    FOREIGN KEY ("tenant_id") REFERENCES "tenant"("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- 8. Shopping List Item Table

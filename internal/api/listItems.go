@@ -82,6 +82,15 @@ func (api *API) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 	var supermarketID sql.NullInt64
 	if data.PrefferdSupermarketID != nil && *data.PrefferdSupermarketID > 0 {
 		supermarketID = sql.NullInt64{Int64: *data.PrefferdSupermarketID, Valid: true}
+		// Verify supermarket belongs to caller's tenant
+		_, err := api.store.GetSupermarketByID(r.Context(), store.GetSupermarketByIDParams{
+			ID:       supermarketID.Int64,
+			TenantID: caller.TenantID,
+		})
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid preferred supermarket ID for tenant")
+			return
+		}
 	}
 
 	item, err := api.store.CreateItem(r.Context(), store.CreateItemParams{
@@ -187,6 +196,15 @@ func (api *API) UpdateListItemHandler(w http.ResponseWriter, r *http.Request) {
 	var supermarketID sql.NullInt64
 	if data.PrefferdSupermarketID != nil && *data.PrefferdSupermarketID > 0 {
 		supermarketID = sql.NullInt64{Int64: *data.PrefferdSupermarketID, Valid: true}
+		// Verify supermarket belongs to caller's tenant
+		_, err := api.store.GetSupermarketByID(r.Context(), store.GetSupermarketByIDParams{
+			ID:       supermarketID.Int64,
+			TenantID: caller.TenantID,
+		})
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid preferred supermarket ID for tenant")
+			return
+		}
 	}
 
 	item, err := api.store.UpdateListItem(r.Context(), store.UpdateListItemParams{
