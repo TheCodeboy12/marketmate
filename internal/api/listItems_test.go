@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/TheCodeboy12/marketmate/internal/store"
@@ -130,5 +131,97 @@ func TestItemHandlersTenantSafety(t *testing.T) {
 	apiInstance.CreateItemHandler(badItemRec, badItemReq)
 	if badItemRec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for cross-tenant preferred supermarket assignment, got %d", badItemRec.Code)
+	}
+}
+
+func TestConcurrentToggle(t *testing.T) {
+	apiInstance, queries, cleanup := setupTestAPI(t)
+	defer cleanup()
+
+	// 1. Create a list and item (starts ticked = false)
+	list, err := queries.CreateShoppingList(context.Background(), store.CreateShoppingListParams{
+		TenantID:  1,
+		Name:      "Groceries",
+		CreatedBy: 1,
+	})
+	if err != nil {
+		t.Fatalf("failed to create list: %v", err)
+	}
+
+	item, err := queries.CreateItem(context.Background(), store.CreateItemParams{
+		ID:          list.ID,
+		TenantID:    1,
+		Name:        "Milk",
+		AmountToBuy: 1,
+		CreatedBy:   1,
+	})
+	if err != nil {
+		t.Fatalf("failed to create item: %v", err)
+	}
+	if item.Ticked {
+		t.Fatalf("item should start unticked (false)")
+	}
+
+	// 2. Simulate 2 concurrent users who both press "toggle" at the exact same instant
+	const numUsers = 2
+	var wg sync.WaitGroup
+	startBarrier := make(chan struct{}) // synchronizes start so both hit the API simultaneously
+	responses := make([]store.ShoppingListItem, numUsers)
+	statusCodes := make([]int, numUsers)
+
+	for i := range numUsers {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+
+			req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/items/%d/toggle", item.ID), nil)
+			req.SetPathValue("id", fmt.Sprintf("%d", item.ID))
+			req = req.WithContext(contextWithUser(req.Context(), int64(idx+2), 1))
+			rec := httptest.NewRecorder()
+
+			<-startBarrier // wait until all goroutines are ready to fire
+
+			apiInstance.ToggleItemHandler(rec, req)
+
+			statusCodes[idx] = rec.Code
+			if rec.Code == http.StatusOK {
+				_ = json.Unmarshal(rec.Body.Bytes(), &responses[idx])
+			}
+		}(i)
+	}
+
+	// Release both requests at the same instant
+	close(startBarrier)
+	wg.Wait()
+
+	// 3. Verify both requests succeeded with 200 OK
+	for i, code := range statusCodes {
+		if code != http.StatusOK {
+			t.Fatalf("request %d failed with status %d", i, code)
+		}
+	}
+
+	// 4. Inspect what each user got back:
+	// Exactly one user saw 'true', and the other user saw 'false'!
+	t.Logf("User 0 received response: ticked = %v", responses[0].Ticked)
+	t.Logf("User 1 received response: ticked = %v", responses[1].Ticked)
+
+	if responses[0].Ticked == responses[1].Ticked {
+		t.Fatalf("expected one user to get true and one to get false, but both got %v", responses[0].Ticked)
+	}
+
+	// 5. Verify database end state:
+	// Because it was toggled twice (false -> true -> false), the item ended up UNTICKED (false)!
+	finalItems, err := queries.ListItemsByListID(context.Background(), store.ListItemsByListIDParams{
+		ShoppingListID: list.ID,
+		TenantID:       1,
+	})
+	if err != nil || len(finalItems) == 0 {
+		t.Fatalf("failed to fetch final item from db")
+	}
+
+	t.Logf("Final item state in DB: ticked = %v", finalItems[0].Ticked)
+	if finalItems[0].Ticked != false {
+		t.Fatalf("expected final state to be false (toggled twice), got %v", finalItems[0].Ticked)
 	}
 }

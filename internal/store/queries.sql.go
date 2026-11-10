@@ -681,11 +681,11 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]UserPub
 	return items, nil
 }
 
-const toggleItem = `-- name: ToggleItem :exec
+const toggleItem = `-- name: ToggleItem :one
 UPDATE
     shopping_list_item
 SET
-    ticked = ?
+    ticked = NOT ticked
 WHERE
     shopping_list_item.id = ?
     AND EXISTS (
@@ -697,17 +697,29 @@ WHERE
             sl.id = shopping_list_item.shopping_list_id
             AND sl.tenant_id = ?
     )
+RETURNING
+    id, shopping_list_id, name, amount_to_buy, category, created_by, ticked, prefferd_supermarket_id
 `
 
 type ToggleItemParams struct {
-	Ticked   bool  `json:"ticked"`
 	ID       int64 `json:"id"`
 	TenantID int64 `json:"tenant_id"`
 }
 
-func (q *Queries) ToggleItem(ctx context.Context, arg ToggleItemParams) error {
-	_, err := q.db.ExecContext(ctx, toggleItem, arg.Ticked, arg.ID, arg.TenantID)
-	return err
+func (q *Queries) ToggleItem(ctx context.Context, arg ToggleItemParams) (ShoppingListItem, error) {
+	row := q.db.QueryRowContext(ctx, toggleItem, arg.ID, arg.TenantID)
+	var i ShoppingListItem
+	err := row.Scan(
+		&i.ID,
+		&i.ShoppingListID,
+		&i.Name,
+		&i.AmountToBuy,
+		&i.Category,
+		&i.CreatedBy,
+		&i.Ticked,
+		&i.PrefferdSupermarketID,
+	)
+	return i, err
 }
 
 const updateListItem = `-- name: UpdateListItem :one

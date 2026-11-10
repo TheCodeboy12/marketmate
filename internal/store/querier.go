@@ -40,7 +40,7 @@ type Querier interface {
 	// 1. AUTH & RBAC (The Most Important Query for Permissions)
 	// ========================================================
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]UserPublic, error)
-	ToggleItem(ctx context.Context, arg ToggleItemParams) error
+	ToggleItem(ctx context.Context, arg ToggleItemParams) (ShoppingListItem, error)
 	UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ShoppingListItem, error)
 	UpdateSupermarket(ctx context.Context, arg UpdateSupermarketParams) (Supermarket, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error)

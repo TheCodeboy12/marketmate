@@ -217,11 +217,11 @@ VALUES
 RETURNING
     *;
 
--- name: ToggleItem :exec
+-- name: ToggleItem :one
 UPDATE
     shopping_list_item
 SET
-    ticked = ?
+    ticked = NOT ticked
 WHERE
     shopping_list_item.id = ?
     AND EXISTS (
@@ -232,7 +232,9 @@ WHERE
         WHERE
             sl.id = shopping_list_item.shopping_list_id
             AND sl.tenant_id = ?
-    );
+    )
+RETURNING
+    *;
 
 -- name: UpdateListItem :one
 UPDATE

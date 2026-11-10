@@ -19,7 +19,7 @@ import (
 func setupTestAPI(t *testing.T) (*api.API, *store.Queries, func()) {
 	t.Helper()
 	dbFile := fmt.Sprintf("test_api_%s.db", t.Name())
-	dbPath := fmt.Sprintf("%s?_pragma=foreign_keys(1)", dbFile)
+	dbPath := fmt.Sprintf("%s?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)", dbFile)
 
 	sqlDB, err := db.InitDB(dbPath)
 	if err != nil {

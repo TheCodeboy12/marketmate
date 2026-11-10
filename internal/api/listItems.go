@@ -106,10 +106,6 @@ func (api *API) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, item)
 }
 
-type ToggleItemPayload struct {
-	Ticked bool `json:"ticked"`
-}
-
 // ToggleItemHandler marks an item as ticked or unticked within caller's tenant
 func (api *API) ToggleItemHandler(w http.ResponseWriter, r *http.Request) {
 	caller, ok := UserFromContext(r.Context())
@@ -125,16 +121,9 @@ func (api *API) ToggleItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data ToggleItemPayload
-	if err := readJSON(r, &data); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	err = api.store.ToggleItem(r.Context(), store.ToggleItemParams{
+	item, err := api.store.ToggleItem(r.Context(), store.ToggleItemParams{
 		ID:       itemID,
 		TenantID: caller.TenantID,
-		Ticked:   data.Ticked,
 	})
 	if err != nil {
 		logger.Printf("failed to toggle item %d: %v", itemID, err)
@@ -142,7 +131,7 @@ func (api *API) ToggleItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Item updated successfully"})
+	writeJSON(w, http.StatusOK, item)
 }
 
 type UpdateListItemPayload struct {
